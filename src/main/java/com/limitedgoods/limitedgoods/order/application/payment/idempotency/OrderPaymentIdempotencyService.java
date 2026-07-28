@@ -19,10 +19,15 @@ public class OrderPaymentIdempotencyService {
 
     private static final long TTL_SECONDS = 3600;
 
-    public OrderResponse getSavedResponse(Long userId, Long orderId, String idempotencyKey) {
-        String key = PaymentRedisKeys.lock(userId, orderId, idempotencyKey);
+    public OrderResponse getSavedResponse(
+            Long userId,
+            Long orderId,
+            String idempotencyKey
+    ) {
+        String key = PaymentRedisKeys.response(userId, orderId, idempotencyKey);
 
         String value = redisTemplate.opsForValue().get(key);
+
         if (value == null) {
             return null;
         }
@@ -34,20 +39,18 @@ public class OrderPaymentIdempotencyService {
         }
     }
 
-    public boolean acquireLock(Long userId, Long orderId, String idempotencyKey) {
-        Boolean success = redisTemplate.opsForValue().setIfAbsent(
-                PaymentRedisKeys.lock(userId, orderId, idempotencyKey),
-                "processing",
-                Duration.ofSeconds(30)
-        );
-        return Boolean.TRUE.equals(success);
-    }
 
-    public void saveResponse(Long userId, Long orderId, String idempotencyKey, OrderResponse response) {
+    public void saveResponse(
+            Long userId,
+            Long orderId,
+            String idempotencyKey,
+            OrderResponse response
+    ) {
         try {
             String value = objectMapper.writeValueAsString(response);
+
             redisTemplate.opsForValue().set(
-                    PaymentRedisKeys.lock(userId, orderId, idempotencyKey),
+                    PaymentRedisKeys.response(userId, orderId, idempotencyKey),
                     value,
                     Duration.ofSeconds(TTL_SECONDS)
             );
@@ -56,7 +59,4 @@ public class OrderPaymentIdempotencyService {
         }
     }
 
-    public void releaseLock(Long userId, Long orderId, String idempotencyKey) {
-        redisTemplate.delete(PaymentRedisKeys.lock(userId, orderId, idempotencyKey));
-    }
 }
