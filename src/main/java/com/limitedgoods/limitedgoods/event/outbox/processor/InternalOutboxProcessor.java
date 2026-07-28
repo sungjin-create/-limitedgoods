@@ -42,48 +42,33 @@ public class InternalOutboxProcessor {
         }
 
         switch (outboxEvent.getEventType()) {
-            case ORDER_CREATED ->
-                    processOrderCreated(outboxEvent);
+            case ORDER_CREATED -> processOrderCreated(outboxEvent);
 
-            case ORDER_PAID ->
-                    processOrderPaid(outboxEvent);
+            case ORDER_PAID -> processOrderPaid(outboxEvent);
 
-            case PAYMENT_FAILED ->
-                    processPaymentFailed(outboxEvent);
+            case PAYMENT_FAILED -> processPaymentFailed(outboxEvent);
 
-            case ORDER_EXPIRED ->
-                    processOrderExpired(outboxEvent);
+            case ORDER_EXPIRED -> processOrderExpired(outboxEvent);
 
-            case ORDER_CANCELED ->
-                    processOrderCanceled(outboxEvent);
+            case ORDER_CANCELED -> processOrderCanceled(outboxEvent);
         }
 
-        outboxEventStateService.markPublished(
-                claim,
-                LocalDateTime.now()
-        );
+        outboxEventStateService.markPublished(claim, LocalDateTime.now());
     }
 
-    private void processOrderPaid(
-            OutboxEvent outboxEvent
-    ) {
+    private void processOrderPaid(OutboxEvent outboxEvent) {
         OrderPaidEvent event = readEvent(
                 outboxEvent,
                 OrderPaidEvent.class
         );
 
         InternalOutboxProcessingException failure =
-                new InternalOutboxProcessingException(
-                        outboxEvent.getId()
-                );
+                new InternalOutboxProcessingException(outboxEvent.getId());
 
         boolean failed = false;
 
         try {
-            emailEventHandler.handle(
-                    outboxEvent.getId(),
-                    event
-            );
+            emailEventHandler.handle(outboxEvent.getId(), event);
         } catch (RuntimeException exception) {
             failed = true;
             failure.addSuppressed(exception);
@@ -96,10 +81,7 @@ public class InternalOutboxProcessor {
         }
 
         try {
-            analyticsEventHandler.handle(
-                    outboxEvent.getId(),
-                    event
-            );
+            analyticsEventHandler.handle(outboxEvent.getId(), event);
         } catch (RuntimeException exception) {
             failed = true;
             failure.addSuppressed(exception);
@@ -122,52 +104,34 @@ public class InternalOutboxProcessor {
                 OrderCreatedEvent.class
         );
 
-        analyticsEventHandler.handle(
-                outboxEvent.getId(),
-                event
-        );
+        analyticsEventHandler.handle(outboxEvent.getId(), event);
     }
 
-    private void processPaymentFailed(
-            OutboxEvent outboxEvent
-    ) {
+    private void processPaymentFailed(OutboxEvent outboxEvent) {
         PaymentFailedEvent event = readEvent(
                 outboxEvent,
                 PaymentFailedEvent.class
         );
 
-        analyticsEventHandler.handle(
-                outboxEvent.getId(),
-                event
-        );
+        analyticsEventHandler.handle(outboxEvent.getId(), event);
     }
 
-    private void processOrderExpired(
-            OutboxEvent outboxEvent
-    ) {
+    private void processOrderExpired(OutboxEvent outboxEvent) {
         OrderExpiredEvent event = readEvent(
                 outboxEvent,
                 OrderExpiredEvent.class
         );
 
-        analyticsEventHandler.handle(
-                outboxEvent.getId(),
-                event
-        );
+        analyticsEventHandler.handle(outboxEvent.getId(), event);
     }
 
-    private void processOrderCanceled(
-            OutboxEvent outboxEvent
-    ) {
+    private void processOrderCanceled(OutboxEvent outboxEvent) {
         OrderCanceledEvent event = readEvent(
                 outboxEvent,
                 OrderCanceledEvent.class
         );
 
-        analyticsEventHandler.handle(
-                outboxEvent.getId(),
-                event
-        );
+        analyticsEventHandler.handle(outboxEvent.getId(), event);
     }
 
     private <T> T readEvent(

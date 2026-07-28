@@ -1,9 +1,9 @@
 package com.limitedgoods.limitedgoods.user.controller;
 
 import com.limitedgoods.limitedgoods.common.response.ApiResponse;
-import com.limitedgoods.limitedgoods.user.dto.UserLoginRequest;
-import com.limitedgoods.limitedgoods.user.dto.UserSignUpRequest;
-import com.limitedgoods.limitedgoods.user.dto.UserSignUpResponse;
+import com.limitedgoods.limitedgoods.user.dto.request.UserLoginRequest;
+import com.limitedgoods.limitedgoods.user.dto.request.UserSignUpRequest;
+import com.limitedgoods.limitedgoods.user.dto.response.UserSignUpResponse;
 import com.limitedgoods.limitedgoods.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

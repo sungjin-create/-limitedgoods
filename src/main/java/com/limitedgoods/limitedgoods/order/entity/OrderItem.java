@@ -34,5 +34,6 @@ public class OrderItem {
 
     private int price;
 
+    @Column(name = "line_total_price")
     private long lineTotalPrice;
 }

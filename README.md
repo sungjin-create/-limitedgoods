@@ -142,11 +142,14 @@ WHERE email = 'admin@example.com';
 
 현재 테스트는 다음 영역을 다룹니다.
 
-- 주문 생성 전제조건과 checkout 멱등 재생
-- Redis 중복 방어와 재고 동시성 통합 테스트
-- Outbox Kafka Publisher 단위 테스트
+- 주문·결제·상품 도메인의 상태 전이와 예외 조건
+- 주문 생성 전제조건, 대기열 입장권, checkout 멱등성과 재고 동시성
+- 결제 승인·거절·타임아웃·재조정과 결제 멱등 재생
+- 내부 Outbox Worker의 claim 처리, 재시도와 소유권 상실
 - 이메일 delivery 상태, 재시도 Worker와 provider circuit
-- 관리자 통계 기간 검증과 상품 순위 변환
+- 관리자 통계 기간 검증, 이벤트 중복 방어, 매출·환불 projection 반영
+
+PostgreSQL·Redis·Kafka처럼 실제 외부 인프라와의 호환성은 별도의 통합 환경에서 추가 검증해야 합니다.
 
 부하 테스트는 `k6/k6-order-test.js`에 있습니다. 스크립트의 `PRODUCT_ID`와 재고를 환경에 맞게 조정한 뒤 실행합니다.
 

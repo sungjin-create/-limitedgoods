@@ -1,7 +1,7 @@
 package com.limitedgoods.limitedgoods.product.controller;
 
 import com.limitedgoods.limitedgoods.common.response.ApiResponse;
-import com.limitedgoods.limitedgoods.product.dto.ProductResponseDTO;
+import com.limitedgoods.limitedgoods.product.dto.ProductResponse;
 import com.limitedgoods.limitedgoods.product.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -13,8 +13,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/api/product")
 @RequiredArgsConstructor
@@ -23,16 +21,17 @@ public class ProductController {
     private final ProductService productService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<Page<ProductResponseDTO>>> getProducts(
+    public ResponseEntity<ApiResponse<Page<ProductResponse>>> getProducts(
             @PageableDefault(size = 10, sort = "id") Pageable pageable
     ) {
         return ResponseEntity.ok(ApiResponse.success(productService.getProducts(pageable)));
     }
 
     @GetMapping("/search")
-    public ResponseEntity<ApiResponse<Page<ProductResponseDTO>>> searchProducts(
+    public ResponseEntity<ApiResponse<Page<ProductResponse>>> searchProducts(
             @PageableDefault(size = 10, sort = "id") Pageable pageable,
-            @RequestParam String keyword){
+            @RequestParam String keyword
+    ){
 
         return ResponseEntity.ok(ApiResponse.success(productService.searchProduct(pageable, keyword)));
     }

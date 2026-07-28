@@ -40,7 +40,7 @@ class PayOrderUseCaseTest {
     @Mock OrderPaymentIdempotencyService idempotencyService;
 
     private PayOrderUseCase useCase;
-    private PaymentRequestDto request;
+    private PaymentRequest request;
 
     @BeforeEach
     void setUp() {
@@ -51,7 +51,7 @@ class PayOrderUseCaseTest {
                 paymentService,
                 idempotencyService
         );
-        request = new PaymentRequestDto();
+        request = new PaymentRequest();
     }
 
     @Test

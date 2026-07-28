@@ -136,8 +136,8 @@ public class CartService {
 
         return cartRepository.save(Cart.builder()
                         .user(user)
-                        .created_at(LocalDateTime.now())
-                        .updated_at(LocalDateTime.now())
+                        .createdAt(LocalDateTime.now())
+                        .updatedAt(LocalDateTime.now())
                         .build());
     }
 

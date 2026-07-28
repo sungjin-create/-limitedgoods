@@ -1,7 +1,7 @@
 package com.limitedgoods.limitedgoods.payment.service;
 
 import com.limitedgoods.limitedgoods.payment.dto.PaymentLookupResult;
-import com.limitedgoods.limitedgoods.payment.dto.PaymentRequestDto;
+import com.limitedgoods.limitedgoods.payment.dto.PaymentRequest;
 import com.limitedgoods.limitedgoods.payment.dto.PaymentResult;
 
 public interface PaymentService {
@@ -10,7 +10,7 @@ public interface PaymentService {
             Long orderId,
             long amount,
             String idempotencyKey,
-            PaymentRequestDto request
+            PaymentRequest request
     );
 
     PaymentLookupResult lookup(

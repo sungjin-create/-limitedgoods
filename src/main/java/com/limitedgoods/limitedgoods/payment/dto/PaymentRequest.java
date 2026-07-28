@@ -5,6 +5,6 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class PaymentRequestDto {
+public class PaymentRequest {
     private boolean forceFail;
 }

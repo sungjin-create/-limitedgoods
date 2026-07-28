@@ -1,6 +1,6 @@
 package com.limitedgoods.limitedgoods.order.application.payment.idempotency;
 
-import com.limitedgoods.limitedgoods.payment.dto.PaymentRequestDto;
+import com.limitedgoods.limitedgoods.payment.dto.PaymentRequest;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
@@ -12,7 +12,7 @@ import java.util.HexFormat;
 public class PaymentRequestFingerprintGenerator {
     public String generate(
             Long orderId,
-            PaymentRequestDto request
+            PaymentRequest request
     ) {
         String source = orderId + ":" + request.isForceFail();
 

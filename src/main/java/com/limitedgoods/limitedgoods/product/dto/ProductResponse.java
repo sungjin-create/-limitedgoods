@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @Builder
-public class ProductResponseDTO {
+public class ProductResponse {
     private Long id;
     private String name;
     private String description;

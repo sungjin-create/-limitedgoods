@@ -7,7 +7,7 @@ import com.limitedgoods.limitedgoods.order.application.payment.idempotency.Order
 import com.limitedgoods.limitedgoods.order.application.payment.idempotency.PaymentRequestFingerprintGenerator;
 import com.limitedgoods.limitedgoods.order.dto.response.OrderResponse;
 import com.limitedgoods.limitedgoods.payment.dto.PaymentLookupResult;
-import com.limitedgoods.limitedgoods.payment.dto.PaymentRequestDto;
+import com.limitedgoods.limitedgoods.payment.dto.PaymentRequest;
 import com.limitedgoods.limitedgoods.payment.dto.PaymentResult;
 import com.limitedgoods.limitedgoods.payment.exception.PaymentDeclinedException;
 import com.limitedgoods.limitedgoods.payment.exception.PaymentNetworkException;
@@ -36,7 +36,7 @@ public class PayOrderUseCase {
     public OrderResponse execute(
             Long userId,
             Long orderId,
-            PaymentRequestDto request,
+            PaymentRequest request,
             String idempotencyKey
     ) {
         validateIdempotencyKey(idempotencyKey);
@@ -220,7 +220,7 @@ public class PayOrderUseCase {
 
     private OrderResponse requestAndCompletePayment(
             Long userId,
-            PaymentRequestDto request,
+            PaymentRequest request,
             PaymentStartResult start,
             String idempotencyKey
     ) {

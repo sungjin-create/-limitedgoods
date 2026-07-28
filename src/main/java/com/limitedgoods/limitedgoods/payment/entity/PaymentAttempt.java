@@ -51,15 +51,19 @@ public class PaymentAttempt {
     @Column(name = "pg_transaction_id")
     private String pgTransactionId;
 
+    @Column(name = "failure_code")
     private String failureCode;
+
+    @Column(name = "failure_reason")
     private String failureReason;
 
-    @Column(nullable = false)
+    @Column(name = "requested_at", nullable = false)
     private LocalDateTime requestedAt;
 
+    @Column(name = "approved_at", nullable = false)
     private LocalDateTime approvedAt;
 
-    @Column(nullable = false)
+    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
     public static PaymentAttempt create(

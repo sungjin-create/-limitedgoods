@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -35,13 +36,16 @@ public class EmailDeliveryStateService {
                         batchSize
                 );
 
-        return deliveries.stream()
-                .map(delivery ->
-                        new ClaimedEmailDelivery(
-                                delivery.getId(),
-                                delivery.markProcessing(now)
-                        ))
-                .toList();
+        List<ClaimedEmailDelivery> result = new ArrayList<>();
+
+        for(EmailDelivery emailDelivery : deliveries) {
+            result.add(new ClaimedEmailDelivery(
+                    emailDelivery.getId(),
+                    emailDelivery.markProcessing(now)
+            ));
+        }
+
+        return result;
     }
 
     @Transactional

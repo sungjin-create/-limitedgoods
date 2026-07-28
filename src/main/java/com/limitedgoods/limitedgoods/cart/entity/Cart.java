@@ -24,6 +24,9 @@ public class Cart {
     @JoinColumn(name = "user_id")
     private User user;
 
-    private LocalDateTime created_at;
-    private LocalDateTime updated_at;
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 }

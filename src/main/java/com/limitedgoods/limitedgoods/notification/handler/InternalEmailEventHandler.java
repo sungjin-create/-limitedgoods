@@ -22,10 +22,7 @@ public class InternalEmailEventHandler {
     private final ProcessedEventRepository processedEventRepository;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void handle(
-            Long eventId,
-            OrderPaidEvent event
-    ) {
+    public void handle(Long eventId, OrderPaidEvent event) {
         if (processedEventRepository.existsByEventIdAndConsumerName(eventId, CONSUMER_NAME)) {
             return;
         }

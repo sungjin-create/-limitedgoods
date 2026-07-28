@@ -59,8 +59,7 @@ public interface DailySalesProjectionRepository extends JpaRepository<DailySales
                         refunded_order_count,
                         refund_amount,
                         sold_quantity,
-                        refunded_quantity,
-                        net_quantity                                        
+                        refunded_quantity
                     )
                     VALUES (
                         :salesDate,
@@ -68,7 +67,8 @@ public interface DailySalesProjectionRepository extends JpaRepository<DailySales
                         0,
                         1,
                         :refundAmount,
-                        0
+                        0,
+                        :refundedQuantity
                     )
                     ON CONFLICT (sales_date)
                     DO UPDATE SET
@@ -76,7 +76,7 @@ public interface DailySalesProjectionRepository extends JpaRepository<DailySales
                             daily_sales_projection.refunded_order_count + 1,
                         refund_amount =
                             daily_sales_projection.refund_amount
-                                + EXCLUDED.refund_amount
+                                + EXCLUDED.refund_amount,
                         refunded_quantity =
                             daily_sales_projection.refunded_quantity
                                 + EXCLUDED.refunded_quantity

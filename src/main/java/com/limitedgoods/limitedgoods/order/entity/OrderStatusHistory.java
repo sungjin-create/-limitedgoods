@@ -28,15 +28,16 @@ public class OrderStatusHistory {
     private User changedByUser;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "from_status")
     private OrderStatus fromStatus;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "to_status", nullable = false)
     private OrderStatus toStatus;
 
     private String reason;
 
-    @Column(nullable = false)
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
     private OrderStatusHistory(

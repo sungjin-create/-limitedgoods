@@ -1,4 +1,4 @@
-package com.limitedgoods.limitedgoods.user.dto;
+package com.limitedgoods.limitedgoods.user.dto.request;
 
 import lombok.Getter;
 import lombok.Setter;

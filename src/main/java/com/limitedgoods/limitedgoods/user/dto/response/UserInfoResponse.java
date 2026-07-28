@@ -1,4 +1,4 @@
-package com.limitedgoods.limitedgoods.user.dto;
+package com.limitedgoods.limitedgoods.user.dto.response;
 
 import lombok.Builder;
 import lombok.Getter;

@@ -9,7 +9,7 @@ import com.limitedgoods.limitedgoods.order.dto.request.OrderRequest;
 import com.limitedgoods.limitedgoods.order.dto.response.OrderDetailResponse;
 import com.limitedgoods.limitedgoods.order.dto.response.OrderResponse;
 import com.limitedgoods.limitedgoods.order.dto.response.OrderSummaryResponse;
-import com.limitedgoods.limitedgoods.payment.dto.PaymentRequestDto;
+import com.limitedgoods.limitedgoods.payment.dto.PaymentRequest;
 import com.limitedgoods.limitedgoods.security.user.CustomUserDetails;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -43,13 +43,13 @@ public class OrderController {
     @PostMapping("/{orderId}/pay")
     public ResponseEntity<ApiResponse<OrderResponse>> payOrder(
             @PathVariable Long orderId,
-            @RequestBody PaymentRequestDto paymentRequestDto,
+            @RequestBody PaymentRequest paymentRequest,
             @RequestHeader("Idempotency-Key") String idempotencyKey,
             @AuthenticationPrincipal CustomUserDetails customUserDetails) {
         OrderResponse response = payOrderUseCase.execute(
                 customUserDetails.getUserId(),
                 orderId,
-                paymentRequestDto,
+                paymentRequest,
                 idempotencyKey
         );
 

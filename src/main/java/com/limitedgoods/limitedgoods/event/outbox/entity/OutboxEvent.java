@@ -37,9 +37,13 @@ public class OutboxEvent {
     @Column(columnDefinition = "TEXT")
     private String lastError;
 
+    @Column(name = "last_tried_at")
     private LocalDateTime lastTriedAt;
 
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    @Column(name = "published_at")
     private LocalDateTime publishedAt;
 
     @Column(name = "claim_token", columnDefinition = "uuid")

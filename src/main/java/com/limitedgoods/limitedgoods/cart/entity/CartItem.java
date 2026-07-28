@@ -35,9 +35,14 @@ public class CartItem {
 
     private int quantity;
     private int price;
+
+    @Column(name = "total_price")
     private long totalPrice;
 
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
     public void updateQuantityAndPrice(int quantity, int price, long totalPrice){

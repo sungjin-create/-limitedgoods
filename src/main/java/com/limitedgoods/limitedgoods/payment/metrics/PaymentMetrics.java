@@ -11,10 +11,7 @@ public class PaymentMetrics {
 
     private final MeterRegistry meterRegistry;
 
-    public void recordPayment(
-            String result,
-            String reason
-    ) {
+    public void recordPayment(String result, String reason) {
         meterRegistry.counter(
                 "limitedgoods.payment",
                 Tags.of(
@@ -35,9 +32,7 @@ public class PaymentMetrics {
             return;
         }
 
-        meterRegistry.counter(
-                "limitedgoods.payment.revenue"
-        ).increment(amount);
+        meterRegistry.counter("limitedgoods.payment.revenue").increment(amount);
     }
 
 }

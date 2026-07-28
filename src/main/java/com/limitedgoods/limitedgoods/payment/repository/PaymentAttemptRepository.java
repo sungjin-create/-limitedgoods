@@ -43,8 +43,4 @@ public interface PaymentAttemptRepository extends JpaRepository<PaymentAttempt, 
             @Param("orderId") Long orderId
     );
 
-    Optional<PaymentAttempt> findTopByOrderIdAndStatusAndPgTransactionIdIsNotNullOrderByApprovedAtDesc(
-            Long orderId,
-            PaymentAttemptStatus status
-    );
 }

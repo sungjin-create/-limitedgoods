@@ -25,25 +25,43 @@ public class Order {
     @JoinColumn(name = "user_id")
     private User user;
 
+    @Column(name = "total_price")
     private long totalPrice;
 
     @Enumerated(EnumType.STRING)
     private OrderStatus status;
 
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
+
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @Column(name = "paid_at")
     private LocalDateTime paidAt;
+
+    @Column(name = "failed_at")
     private LocalDateTime failedAt;
+
+    @Column(name = "expires_at")
     private LocalDateTime expiresAt;
+
+    @Column(name = "fail_reason")
     private String failReason;
 
+    @Column(name = "cancel_requested_at")
     private LocalDateTime cancelRequestedAt;
+
+    @Column(name = "refunded_at")
     private LocalDateTime refundedAt;
+
+    @Column(name = "cancel_fail_reason")
     private String cancelFailReason;
 
+    @Column(name = "checkout_token")
     private String checkoutToken;
 
-    @Column(nullable = false)
+    @Column(name = "request_fingerprint", nullable = false)
     private String requestFingerprint;
 
     public static Order create(User user,
@@ -80,7 +98,6 @@ public class Order {
         this.failReason = null;
         this.failedAt = null;
         this.updatedAt = LocalDateTime.now();
-
         this.failReason = null;
         this.failedAt = null;
     }
