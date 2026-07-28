@@ -5,6 +5,7 @@ import com.limitedgoods.limitedgoods.common.exception.ErrorCode;
 import com.limitedgoods.limitedgoods.event.outbox.entity.OutboxEventType;
 import com.limitedgoods.limitedgoods.event.outbox.service.OutboxEventWriter;
 import com.limitedgoods.limitedgoods.event.payload.order.OrderCanceledEvent;
+import com.limitedgoods.limitedgoods.event.payload.order.OrderCanceledItem;
 import com.limitedgoods.limitedgoods.order.application.cancel.dto.RefundCommand;
 import com.limitedgoods.limitedgoods.order.application.history.OrderStatusHistoryService;
 import com.limitedgoods.limitedgoods.order.application.mapper.OrderResponseMapper;
@@ -144,7 +145,19 @@ public class OrderCancellationService {
                 new OrderCanceledEvent(
                         orderId,
                         userId,
-                        LocalDateTime.now()
+                        order.getTotalPrice(),
+                        order.getCreatedAt(),
+                        order.getPaidAt(),
+                        order.getRefundedAt(),
+                        orderItems.stream()
+                                .map(item ->
+                                        new OrderCanceledItem(
+                                                item.getProduct().getId(),
+                                                item.getQuantity(),
+                                                item.getPrice()
+                                        )
+                                )
+                                .toList()
                 )
         );
 

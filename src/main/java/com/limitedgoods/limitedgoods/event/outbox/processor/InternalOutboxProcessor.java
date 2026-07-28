@@ -8,7 +8,7 @@ import com.limitedgoods.limitedgoods.event.outbox.exception.InternalOutboxProces
 import com.limitedgoods.limitedgoods.event.outbox.repository.OutboxEventRepository;
 import com.limitedgoods.limitedgoods.event.outbox.service.ClaimedOutboxEvent;
 import com.limitedgoods.limitedgoods.event.outbox.service.OutboxEventStateService;
-import com.limitedgoods.limitedgoods.event.payload.order.OrderPaidEvent;
+import com.limitedgoods.limitedgoods.event.payload.order.*;
 import com.limitedgoods.limitedgoods.notification.handler.InternalEmailEventHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,15 +42,20 @@ public class InternalOutboxProcessor {
         }
 
         switch (outboxEvent.getEventType()) {
-            case ORDER_PAID -> processOrderPaid(outboxEvent);
+            case ORDER_CREATED ->
+                    processOrderCreated(outboxEvent);
 
-            case ORDER_EXPIRED, ORDER_CANCELED ->
-                    log.debug(
-                            "event=internal_event_ignored "
-                                    + "eventId={} eventType={}",
-                            outboxEvent.getId(),
-                            outboxEvent.getEventType()
-                    );
+            case ORDER_PAID ->
+                    processOrderPaid(outboxEvent);
+
+            case PAYMENT_FAILED ->
+                    processPaymentFailed(outboxEvent);
+
+            case ORDER_EXPIRED ->
+                    processOrderExpired(outboxEvent);
+
+            case ORDER_CANCELED ->
+                    processOrderCanceled(outboxEvent);
         }
 
         outboxEventStateService.markPublished(
@@ -59,37 +64,48 @@ public class InternalOutboxProcessor {
         );
     }
 
-    private void processOrderPaid(OutboxEvent outboxEvent) {
-        OrderPaidEvent event = readOrderPaidEvent(outboxEvent.getPayload());
+    private void processOrderPaid(
+            OutboxEvent outboxEvent
+    ) {
+        OrderPaidEvent event = readEvent(
+                outboxEvent,
+                OrderPaidEvent.class
+        );
 
         InternalOutboxProcessingException failure =
-                new InternalOutboxProcessingException(outboxEvent.getId());
+                new InternalOutboxProcessingException(
+                        outboxEvent.getId()
+                );
 
         boolean failed = false;
 
         try {
-            emailEventHandler.handle(outboxEvent.getId(), event);
+            emailEventHandler.handle(
+                    outboxEvent.getId(),
+                    event
+            );
         } catch (RuntimeException exception) {
             failed = true;
             failure.addSuppressed(exception);
 
             log.error(
-                    "event=internal_email_event_failed "
-                            + "eventId={}",
+                    "event=internal_email_event_failed eventId={}",
                     outboxEvent.getId(),
                     exception
             );
         }
 
         try {
-            analyticsEventHandler.handle(outboxEvent.getId(), event);
+            analyticsEventHandler.handle(
+                    outboxEvent.getId(),
+                    event
+            );
         } catch (RuntimeException exception) {
             failed = true;
             failure.addSuppressed(exception);
 
             log.error(
-                    "event=internal_analytics_event_failed "
-                            + "eventId={}",
+                    "event=internal_analytics_event_failed eventId={}",
                     outboxEvent.getId(),
                     exception
             );
@@ -100,14 +116,74 @@ public class InternalOutboxProcessor {
         }
     }
 
-    private OrderPaidEvent readOrderPaidEvent(
-            String payload
+    private void processOrderCreated(OutboxEvent outboxEvent) {
+        OrderCreatedEvent event = readEvent(
+                outboxEvent,
+                OrderCreatedEvent.class
+        );
+
+        analyticsEventHandler.handle(
+                outboxEvent.getId(),
+                event
+        );
+    }
+
+    private void processPaymentFailed(
+            OutboxEvent outboxEvent
+    ) {
+        PaymentFailedEvent event = readEvent(
+                outboxEvent,
+                PaymentFailedEvent.class
+        );
+
+        analyticsEventHandler.handle(
+                outboxEvent.getId(),
+                event
+        );
+    }
+
+    private void processOrderExpired(
+            OutboxEvent outboxEvent
+    ) {
+        OrderExpiredEvent event = readEvent(
+                outboxEvent,
+                OrderExpiredEvent.class
+        );
+
+        analyticsEventHandler.handle(
+                outboxEvent.getId(),
+                event
+        );
+    }
+
+    private void processOrderCanceled(
+            OutboxEvent outboxEvent
+    ) {
+        OrderCanceledEvent event = readEvent(
+                outboxEvent,
+                OrderCanceledEvent.class
+        );
+
+        analyticsEventHandler.handle(
+                outboxEvent.getId(),
+                event
+        );
+    }
+
+    private <T> T readEvent(
+            OutboxEvent outboxEvent,
+            Class<T> eventClass
     ) {
         try {
-            return objectMapper.readValue(payload, OrderPaidEvent.class);
+            return objectMapper.readValue(
+                    outboxEvent.getPayload(),
+                    eventClass
+            );
+
         } catch (JsonProcessingException exception) {
             throw new IllegalArgumentException(
-                    "ORDER_PAID event payload is invalid",
+                    outboxEvent.getEventType()
+                            + " event payload is invalid",
                     exception
             );
         }

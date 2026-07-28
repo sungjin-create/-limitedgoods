@@ -8,6 +8,7 @@ public record OrderPaidEvent(
         Long userId,
         String recipientEmail,
         long totalPrice,
+        LocalDateTime createdAt,
         LocalDateTime paidAt,
         List<OrderPaidItem> items
 ) {

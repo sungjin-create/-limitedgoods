@@ -77,9 +77,16 @@ public class OrderExpirationService {
         outboxEventWriter.append(
                 OutboxEventType.ORDER_EXPIRED,
                 "ORDER",
-                orderId,
-                new OrderExpiredEvent(orderId, LocalDateTime.now())
+                order.getId(),
+                new OrderExpiredEvent(
+                        order.getId(),
+                        order.getUser().getId(),
+                        order.getTotalPrice(),
+                        order.getCreatedAt(),
+                        LocalDateTime.now()
+                )
         );
+
 
         publisher.publishEvent(OrderExpiredMetricEvent.timeout());
 

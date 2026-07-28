@@ -2,11 +2,11 @@ package com.limitedgoods.limitedgoods.event.payload.order;
 
 import java.time.LocalDateTime;
 
-public record OrderExpiredEvent(
+public record PaymentFailedEvent (
         Long orderId,
         Long userId,
-        long totalPrice,
         LocalDateTime createdAt,
-        LocalDateTime expiredAt
-) {
+        LocalDateTime failedAt,
+        String failureReason
+){
 }

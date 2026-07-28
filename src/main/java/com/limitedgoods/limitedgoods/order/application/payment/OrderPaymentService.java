@@ -88,13 +88,16 @@ public class OrderPaymentService {
                         userId,
                         order.getUser().getEmail(),
                         order.getTotalPrice(),
-                        LocalDateTime.now(),
-                        orderItemRepository.findByOrderId(order.getId()).stream()
-                                .map(item -> new OrderPaidItem(
-                                        item.getProduct().getId(),
-                                        item.getQuantity(),
-                                        item.getPrice()
-                                ))
+                        order.getCreatedAt(),
+                        order.getPaidAt(),
+                        orderItemList.stream()
+                                .map(item ->
+                                        new OrderPaidItem(
+                                                item.getProduct().getId(),
+                                                item.getQuantity(),
+                                                item.getPrice()
+                                        )
+                                )
                                 .toList()
                 )
         );

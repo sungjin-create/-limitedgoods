@@ -2,6 +2,10 @@ package com.limitedgoods.limitedgoods.order.application.create;
 
 import com.limitedgoods.limitedgoods.common.exception.BusinessException;
 import com.limitedgoods.limitedgoods.common.exception.ErrorCode;
+import com.limitedgoods.limitedgoods.event.outbox.entity.OutboxEventType;
+import com.limitedgoods.limitedgoods.event.outbox.service.OutboxEventWriter;
+import com.limitedgoods.limitedgoods.event.payload.order.OrderCreatedEvent;
+import com.limitedgoods.limitedgoods.event.payload.order.OrderExpiredEvent;
 import com.limitedgoods.limitedgoods.order.application.create.dto.OrderStockReservationResult;
 import com.limitedgoods.limitedgoods.order.application.history.OrderStatusHistoryService;
 import com.limitedgoods.limitedgoods.order.application.mapper.OrderResponseMapper;
@@ -42,6 +46,7 @@ public class OrderCreateTransactionService {
     private final OrderStockReservationService stockReservationService;
     private final OrderStatusHistoryService historyService;
     private final ApplicationEventPublisher eventPublisher;
+    private final OutboxEventWriter outboxEventWriter;
 
 
 
@@ -82,6 +87,19 @@ public class OrderCreateTransactionService {
         historyService.createInitialHistory(savedOrder);
 
         eventPublisher.publishEvent(OrderCreateMetricEvent.success());
+
+        outboxEventWriter.append(
+                OutboxEventType.ORDER_CREATED,
+                "ORDER",
+                savedOrder.getId(),
+                new OrderCreatedEvent(
+                        savedOrder.getId(),
+                        userId,
+                        savedOrder.getTotalPrice(),
+                        savedOrder.getCreatedAt(),
+                        savedOrder.getExpiresAt()
+                )
+        );
 
         return orderResponseMapper.toResponse(savedOrder);
     }
@@ -191,6 +209,19 @@ public class OrderCreateTransactionService {
             );
 
             eventPublisher.publishEvent(OrderExpiredMetricEvent.replacedByNewOrder());
+
+            outboxEventWriter.append(
+                    OutboxEventType.ORDER_EXPIRED,
+                    "ORDER",
+                    order.getId(),
+                    new OrderExpiredEvent(
+                            order.getId(),
+                            order.getUser().getId(),
+                            order.getTotalPrice(),
+                            order.getCreatedAt(),
+                            LocalDateTime.now()
+                    )
+            );
 
         }
     }

@@ -2,6 +2,9 @@ package com.limitedgoods.limitedgoods.order.application.payment;
 
 import com.limitedgoods.limitedgoods.common.exception.BusinessException;
 import com.limitedgoods.limitedgoods.common.exception.ErrorCode;
+import com.limitedgoods.limitedgoods.event.outbox.entity.OutboxEventType;
+import com.limitedgoods.limitedgoods.event.outbox.service.OutboxEventWriter;
+import com.limitedgoods.limitedgoods.event.payload.order.PaymentFailedEvent;
 import com.limitedgoods.limitedgoods.order.application.history.OrderStatusHistoryService;
 import com.limitedgoods.limitedgoods.order.application.mapper.OrderResponseMapper;
 import com.limitedgoods.limitedgoods.order.application.payment.dto.PaymentStartAction;
@@ -31,6 +34,7 @@ public class PaymentCommandService {
     private final OrderStatusHistoryService historyService;
     private final OrderAccessService orderAccessService;
     private final ApplicationEventPublisher eventPublisher;
+    private final OutboxEventWriter outboxEventWriter;
 
     @Transactional
     public PaymentStartResult preparePayment(
@@ -168,6 +172,19 @@ public class PaymentCommandService {
                     OrderStatus.PAYMENT_FAILED,
                     reason,
                     order.getUser()
+            );
+
+            outboxEventWriter.append(
+                    OutboxEventType.PAYMENT_FAILED,
+                    "ORDER",
+                    order.getId(),
+                    new PaymentFailedEvent(
+                            order.getId(),
+                            userId,
+                            order.getCreatedAt(),
+                            order.getFailedAt(),
+                            reason
+                    )
             );
         }
 
