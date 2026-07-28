@@ -37,8 +37,18 @@ public class BackofficeAnalyticsController {
 
     @GetMapping("/products")
     public ResponseEntity<ApiResponse<List<ProductSalesResponse>>> getTopProducts(
+            @RequestParam
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate from,
+
+            @RequestParam
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate to,
+
             @RequestParam(defaultValue = "10") int limit
     ) {
-        return ResponseEntity.ok(ApiResponse.success(analyticsQueryService.getTopProducts(limit)));
+        return ResponseEntity.ok(ApiResponse.success(
+                analyticsQueryService.getTopProducts(from, to, limit)
+        ));
     }
 }

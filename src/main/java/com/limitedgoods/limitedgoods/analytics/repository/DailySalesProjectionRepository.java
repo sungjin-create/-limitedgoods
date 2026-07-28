@@ -58,7 +58,9 @@ public interface DailySalesProjectionRepository extends JpaRepository<DailySales
                         gross_revenue,
                         refunded_order_count,
                         refund_amount,
-                        sold_quantity
+                        sold_quantity,
+                        refunded_quantity,
+                        net_quantity                                        
                     )
                     VALUES (
                         :salesDate,
@@ -75,12 +77,16 @@ public interface DailySalesProjectionRepository extends JpaRepository<DailySales
                         refund_amount =
                             daily_sales_projection.refund_amount
                                 + EXCLUDED.refund_amount
+                        refunded_quantity =
+                            daily_sales_projection.refunded_quantity
+                                + EXCLUDED.refunded_quantity
                     """,
             nativeQuery = true
     )
     void addRefund(
             @Param("salesDate") LocalDate salesDate,
-            @Param("refundAmount") long refundAmount
+            @Param("refundAmount") long refundAmount,
+            @Param("refundedQuantity") long refundedQuantity
     );
 
     List<DailySalesProjection> findAllBySalesDateBetweenOrderBySalesDateAsc(

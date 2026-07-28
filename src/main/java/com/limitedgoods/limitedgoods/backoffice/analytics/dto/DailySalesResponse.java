@@ -12,6 +12,8 @@ public record DailySalesResponse(
         long refundAmount,
         long netRevenue,
         long soldQuantity,
+        long refundedQuantity,
+        long netQuantity,
         double averageOrderAmount
 ) {
 
@@ -24,6 +26,8 @@ public record DailySalesResponse(
                 projection.getRefundAmount(),
                 projection.getNetRevenue(),
                 projection.getSoldQuantity(),
+                projection.getRefundedQuantity(),
+                projection.getNetQuantity(),
                 roundOneDecimal(
                         projection.getAverageOrderAmount()
                 )
@@ -33,6 +37,8 @@ public record DailySalesResponse(
     public static DailySalesResponse empty(LocalDate date) {
         return new DailySalesResponse(
                 date,
+                0,
+                0,
                 0,
                 0,
                 0,

@@ -19,6 +19,8 @@ public record AnalyticsOverviewResponse(
             long refundAmount,
             long netRevenue,
             long soldQuantity,
+            long refundedQuantity,
+            long netQuantity,
             double averageOrderAmount
     ) {
     }

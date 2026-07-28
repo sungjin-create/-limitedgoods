@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
@@ -59,7 +60,13 @@ public class BackofficeAnalyticsQueryService {
         );
     }
 
-    public List<ProductSalesResponse> getTopProducts(int limit) {
+    public List<ProductSalesResponse> getTopProducts(
+            LocalDate from,
+            LocalDate to,
+            int limit
+    ) {
+        validateDateRange(from, to);
+
         if (limit < 1 || limit > MAX_PRODUCT_LIMIT) {
             throw new BusinessException(
                     ErrorCode.INVALID_INPUT,
@@ -67,8 +74,11 @@ public class BackofficeAnalyticsQueryService {
             );
         }
 
+        LocalDateTime fromAt = from.atStartOfDay();
+        LocalDateTime toExclusive = to.plusDays(1).atStartOfDay();
+
         return productSalesRepository
-                .findTopSellingProducts(limit)
+                .findTopSellingProducts(fromAt, toExclusive, limit)
                 .stream()
                 .map(view ->
                         new ProductSalesResponse(
@@ -110,6 +120,12 @@ public class BackofficeAnalyticsQueryService {
                 .mapToLong(DailySalesProjection::getSoldQuantity)
                 .sum();
 
+        long refundedQuantity = projections.stream()
+                .mapToLong(DailySalesProjection::getRefundedQuantity)
+                .sum();
+
+        long netQuantity = soldQuantity - refundedQuantity;
+
         double averageOrderAmount =
                 paidOrderCount == 0
                         ? 0
@@ -122,6 +138,8 @@ public class BackofficeAnalyticsQueryService {
                 refundAmount,
                 grossRevenue - refundAmount,
                 soldQuantity,
+                refundedQuantity,
+                netQuantity,
                 averageOrderAmount
         );
     }

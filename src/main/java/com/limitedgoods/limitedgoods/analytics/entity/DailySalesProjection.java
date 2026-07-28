@@ -41,6 +41,9 @@ public class DailySalesProjection {
     @Column(name = "sold_quantity", nullable = false)
     private long soldQuantity;
 
+    @Column(name = "refunded_quantity", nullable = false)
+    private long refundedQuantity;
+
     public long getNetRevenue() {
         return grossRevenue - refundAmount;
     }
@@ -51,5 +54,9 @@ public class DailySalesProjection {
         }
 
         return (double) grossRevenue / paidOrderCount;
+    }
+
+    public long getNetQuantity() {
+        return soldQuantity - refundedQuantity;
     }
 }
