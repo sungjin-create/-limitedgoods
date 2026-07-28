@@ -44,11 +44,6 @@ public class BackofficeMonitoringService {
                 getHealthStatus("redis")
         );
 
-        dependencies.put(
-                "kafka",
-                getHealthStatus("kafka")
-        );
-
 
         Map requestsPerSecond = prometheusClient.query("""
             sum(

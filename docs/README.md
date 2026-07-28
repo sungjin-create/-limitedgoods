@@ -9,7 +9,7 @@
 | [아키텍처](./architecture.md) | 주요 컴포넌트와 주문·결제·Outbox 흐름 |
 | [API 요약](./api-reference.md) | 사용자·관리자 endpoint와 필수 헤더 |
 | [통계와 모니터링](./analytics-and-monitoring.md) | projection, 날짜 기준, Prometheus/Grafana |
-| [이벤트 전달 모드](./event-delivery-modes.md) | internal-worker와 Kafka PoC의 현재 상태 |
+| [이벤트 처리 모드](./event-delivery-modes.md) | internal-worker의 실행 방식과 장애 처리 |
 | [Worker 타임라인](./worker-timeline.md) | Outbox와 이메일 Worker의 claim·lease·retry 흐름 |
 | [도메인 정책](./policies/README.md) | 대기열·주문·결제·상품 정책 |
 

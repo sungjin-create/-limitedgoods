@@ -1,7 +1,6 @@
-# 이벤트 전달 모드
+# 이벤트 처리 모드
 
 현재 백엔드에서 실제로 동작하는 Outbox 처리 경로는 `internal-worker` 프로필입니다.
-Kafka 외부 소비자 경로는 설계와 PoC 코드만 있고 기본 실행 경로가 아닙니다.
 
 claim, lease, 재시도와 이메일 발송의 상세 순서는 [Worker 타임라인](./worker-timeline.md)을
 참고합니다.
@@ -56,20 +55,6 @@ SMTP 수신 성공과 DB의 `SENT` 갱신은 한 transaction으로 묶을 수 �
 성공한 직후 프로세스가 중단되면 lease 만료 후 중복 발송될 수 있습니다. 엄격한 중복
 억제가 필요하면 `eventId` 기반 멱등 key를 지원하는 provider API가 필요합니다.
 
-## Kafka 외부 소비자 PoC
-
-`limitedgoods-event-platform`에는 알림과 통계 consumer가 있지만 현재 다음 이유로
-백엔드와 자동 연결되지 않습니다.
-
-- 백엔드 `KafkaOutboxPublisher` 소스가 전부 주석 처리돼 있습니다.
-- `application.yml`의 Kafka bootstrap 설정도 주석 처리돼 있습니다.
-- `docker-compose.yml`의 Kafka와 Kafka UI 서비스도 주석 처리돼 있습니다.
-- 외부 consumer는 `ORDER_PAID`만 처리합니다.
-- 외부 event contract와 백엔드 payload가 완전히 일치하지 않습니다.
-
-PoC를 다시 활성화할 때는 Publisher, Kafka 설정과 Compose 서비스를 함께 복구하고,
-같은 환경에서 내부 Worker와 외부 Publisher가 동일 Outbox 행을 경쟁하지 않도록 실행
-모드를 명시적으로 분리해야 합니다.
 
 정식 외부 모드로 전환하기 전 필요한 작업:
 

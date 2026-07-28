@@ -26,9 +26,8 @@
 - Spring Web, Security, Validation
 - Spring Data JPA/JDBC, PostgreSQL 16, Flyway
 - Spring Data Redis, Redisson
-- Spring Kafka
 - Micrometer, Actuator, Prometheus, Grafana
-- JUnit 5, Spring Boot Test, Kafka Test
+- JUnit 5, Spring Boot Test
 - Docker Compose, k6
 
 ## 아키텍처
@@ -87,9 +86,6 @@ Compose 기본 DB 이름은 `limitedgoods`이지만 애플리케이션 기본 JD
 | Prometheus | 9090 |
 | Grafana | 3000 |
 
-Kafka와 Kafka UI 정의는 `docker-compose.yml`에 있으나 현재 주석 처리돼 있습니다.
-외부 이벤트 PoC를 실험할 때만 해당 정의와 Kafka 설정을 직접 활성화합니다.
-
 ### 애플리케이션
 
 현재 권장 실행 방식은 내부 Outbox Worker 모드입니다.
@@ -101,7 +97,7 @@ $env:SPRING_PROFILES_ACTIVE = "internal-worker"
 
 기본 API 주소는 `http://localhost:8080`입니다. Flyway가 애플리케이션 시작 시 schema migration을 검증하고 적용합니다.
 
-> `internal-worker` 없이 실행하면 현재 소스에서는 Outbox를 처리하는 Worker도, Kafka로 발행하는 Publisher도 동작하지 않습니다. 자세한 내용은 [이벤트 전달 모드](./docs/event-delivery-modes.md)를 참고합니다.
+> `internal-worker` 없이 실행하면 Outbox를 처리하는 Worker가 동작하지 않습니다. 자세한 내용은 [이벤트 처리 모드](./docs/event-delivery-modes.md)를 참고합니다.
 
 ## 관리자 계정
 
@@ -126,13 +122,12 @@ WHERE email = 'admin@example.com';
 | `SPRING_DATASOURCE_PASSWORD` | DB 비밀번호 | 로컬 개발값 |
 | `SPRING_DATA_REDIS_HOST` | Redis 호스트 | `localhost` |
 | `SPRING_DATA_REDIS_PORT` | Redis 포트 | `6379` |
-| `SPRING_KAFKA_BOOTSTRAP_SERVERS` | Kafka 주소 | `localhost:9092` |
 | `PROMETHEUS_BASE_URL` | 관리자 모니터링 조회 주소 | `http://localhost:9090` |
 | `LOKI_BASE_URL` | Loki 조회 주소 | `http://localhost:3100` |
 | `APP_ENV` | metric 공통 태그 | `local` |
 | `LOG_PATH` | 로그 파일 경로 | logback 기본값 |
 
-내부 메일 발송 관련 변수는 [이벤트 전달 모드](./docs/event-delivery-modes.md)에 정리돼 있습니다.
+내부 메일 발송 관련 변수는 [이벤트 처리 모드](./docs/event-delivery-modes.md)에 정리돼 있습니다.
 
 ## 테스트
 
@@ -149,7 +144,7 @@ WHERE email = 'admin@example.com';
 - 이메일 delivery 상태, 재시도 Worker와 provider circuit
 - 관리자 통계 기간 검증, 이벤트 중복 방어, 매출·환불 projection 반영
 
-PostgreSQL·Redis·Kafka처럼 실제 외부 인프라와의 호환성은 별도의 통합 환경에서 추가 검증해야 합니다.
+PostgreSQL·Redis처럼 실제 외부 인프라와의 호환성은 별도의 통합 환경에서 추가 검증해야 합니다.
 
 부하 테스트는 `k6/k6-order-test.js`에 있습니다. 스크립트의 `PRODUCT_ID`와 재고를 환경에 맞게 조정한 뒤 실행합니다.
 
@@ -179,13 +174,12 @@ Prometheus는 Docker 컨테이너에서 `host.docker.internal:8080`의 백엔드
 - [아키텍처](./docs/architecture.md)
 - [API 요약](./docs/api-reference.md)
 - [통계와 모니터링](./docs/analytics-and-monitoring.md)
-- [이벤트 전달 모드](./docs/event-delivery-modes.md)
+- [이벤트 처리 모드](./docs/event-delivery-modes.md)
 - [Worker 타임라인](./docs/worker-timeline.md)
 - [도메인 정책](./docs/policies/README.md)
 
 ## 현재 제한과 후속 작업
 
-- Kafka Publisher가 비활성화돼 있어 외부 이벤트 플랫폼은 백엔드와 연결되지 않습니다.
 - 통계는 내부 Worker가 갱신하므로 비동기 처리 지연이 존재합니다.
 - 일별 환불 수량 갱신 native SQL은 현재 column/value 구문이 맞지 않아 수정이 필요합니다.
 - 관리자 계정 bootstrap 기능이 없어 로컬 DB에서 역할을 변경해야 합니다.

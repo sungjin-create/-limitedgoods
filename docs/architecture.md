@@ -1,7 +1,7 @@
 # 아키텍처
 
-이 문서는 `limitedgoods-backend`의 현재 실행 경로를 설명합니다. Kafka 기반 외부
-소비자 프로젝트는 [이벤트 전달 모드](./event-delivery-modes.md)에서 별도로 다룹니다.
+이 문서는 `limitedgoods-backend`의 현재 실행 경로를 설명합니다. Outbox 기반 내부
+후처리 방식은 [이벤트 처리 모드](./event-delivery-modes.md)에서 별도로 다룹니다.
 
 ## 구성 요소
 

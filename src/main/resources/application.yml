@@ -31,24 +31,6 @@ spring:
       port: ${SPRING_DATA_REDIS_PORT:6379}
       timeout: 6000ms
 
-#  kafka:
-#    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
-
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.apache.kafka.common.serialization.StringSerializer
-
-    consumer:
-      auto-offset-reset: earliest
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-
-      properties:
-        spring:
-          json:
-            trusted:
-              packages: com.limitedgoods.limitedgoods.*
-
 server:
   tomcat:
     threads:
