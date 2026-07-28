@@ -2,8 +2,8 @@ package com.limitedgoods.limitedgoods.notification.worker;
 
 import com.limitedgoods.limitedgoods.notification.exception.EmailInfrastructureException;
 import com.limitedgoods.limitedgoods.notification.infrastructure.mail.EmailProviderCircuit;
-import com.limitedgoods.limitedgoods.notification.service.ClaimedEmail;
-import com.limitedgoods.limitedgoods.notification.service.EmailDeliveryService;
+import com.limitedgoods.limitedgoods.notification.service.ClaimedEmailDelivery;
+import com.limitedgoods.limitedgoods.notification.service.EmailDeliveryProcessor;
 import com.limitedgoods.limitedgoods.notification.service.EmailDeliveryStateService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -29,7 +29,7 @@ class EmailDeliveryWorkerTest {
     private EmailDeliveryStateService stateService;
 
     @Mock
-    private EmailDeliveryService deliveryService;
+    private EmailDeliveryProcessor deliveryService;
 
     @Mock
     private EmailProviderCircuit providerCircuit;
@@ -76,8 +76,8 @@ class EmailDeliveryWorkerTest {
         when(providerCircuit.isBlocked(any(Instant.class)))
                 .thenReturn(false);
 
-        ClaimedEmail first = claim(1L);
-        ClaimedEmail second = claim(2L);
+        ClaimedEmailDelivery first = claim(1L);
+        ClaimedEmailDelivery second = claim(2L);
 
         when(stateService.claimBatch(
                 any(LocalDateTime.class),
@@ -89,8 +89,8 @@ class EmailDeliveryWorkerTest {
         worker.sendPendingEmails();
 
         InOrder inOrder = inOrder(deliveryService);
-        inOrder.verify(deliveryService).send(first);
-        inOrder.verify(deliveryService).send(second);
+        inOrder.verify(deliveryService).process(first);
+        inOrder.verify(deliveryService).process(second);
     }
 
     @Test
@@ -99,9 +99,9 @@ class EmailDeliveryWorkerTest {
         when(providerCircuit.isBlocked(any(Instant.class)))
                 .thenReturn(false);
 
-        ClaimedEmail first = claim(1L);
-        ClaimedEmail second = claim(2L);
-        ClaimedEmail third = claim(3L);
+        ClaimedEmailDelivery first = claim(1L);
+        ClaimedEmailDelivery second = claim(2L);
+        ClaimedEmailDelivery third = claim(3L);
 
         when(stateService.claimBatch(
                 any(LocalDateTime.class),
@@ -118,13 +118,13 @@ class EmailDeliveryWorkerTest {
 
         doThrow(exception)
                 .when(deliveryService)
-                .send(first);
+                .process(first);
 
         worker.sendPendingEmails();
 
-        verify(deliveryService).send(first);
-        verify(deliveryService, never()).send(second);
-        verify(deliveryService, never()).send(third);
+        verify(deliveryService).process(first);
+        verify(deliveryService, never()).process(second);
+        verify(deliveryService, never()).process(third);
 
         verify(stateService)
                 .releaseBatchAfterInfrastructureFailure(
@@ -140,8 +140,8 @@ class EmailDeliveryWorkerTest {
         when(providerCircuit.isBlocked(any(Instant.class)))
                 .thenReturn(false);
 
-        ClaimedEmail first = claim(1L);
-        ClaimedEmail second = claim(2L);
+        ClaimedEmailDelivery first = claim(1L);
+        ClaimedEmailDelivery second = claim(2L);
 
         when(stateService.claimBatch(
                 any(LocalDateTime.class),
@@ -152,12 +152,12 @@ class EmailDeliveryWorkerTest {
 
         doThrow(new RuntimeException("unexpected error"))
                 .when(deliveryService)
-                .send(first);
+                .process(first);
 
         worker.sendPendingEmails();
 
-        verify(deliveryService).send(first);
-        verify(deliveryService).send(second);
+        verify(deliveryService).process(first);
+        verify(deliveryService).process(second);
 
         verify(
                 stateService,
@@ -169,8 +169,8 @@ class EmailDeliveryWorkerTest {
         );
     }
 
-    private ClaimedEmail claim(Long deliveryId) {
-        return new ClaimedEmail(
+    private ClaimedEmailDelivery claim(Long deliveryId) {
+        return new ClaimedEmailDelivery(
                 deliveryId,
                 UUID.randomUUID()
         );

@@ -1,6 +1,6 @@
 package com.limitedgoods.limitedgoods.notification.entity;
 
-import com.limitedgoods.limitedgoods.notification.exception.ClaimOwnershipLostException;
+import com.limitedgoods.limitedgoods.notification.exception.EmailDeliveryClaimOwnershipLostException;
 import com.limitedgoods.limitedgoods.notification.template.EmailTemplateType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -26,7 +26,7 @@ class EmailDeliveryTest {
         delivery.markSent(claimToken, sentAt);
 
         assertThat(delivery.getStatus())
-                .isEqualTo(EmailDelivery.Status.SENT);
+                .isEqualTo(EmailDeliveryStatus.SENT);
         assertThat(delivery.getSentAt()).isEqualTo(sentAt);
         assertThat(delivery.getProcessingStartedAt()).isNull();
         assertThat(delivery.getClaimToken()).isNull();
@@ -51,7 +51,7 @@ class EmailDeliveryTest {
         );
 
         assertThat(delivery.getStatus())
-                .isEqualTo(EmailDelivery.Status.FAILED);
+                .isEqualTo(EmailDeliveryStatus.FAILED);
         assertThat(delivery.getRetryCount()).isEqualTo(1);
         assertThat(delivery.getAttemptCount()).isEqualTo(1);
         assertThat(delivery.getNextAttemptAt())
@@ -83,7 +83,7 @@ class EmailDeliveryTest {
         }
 
         assertThat(delivery.getStatus())
-                .isEqualTo(EmailDelivery.Status.DEAD);
+                .isEqualTo(EmailDeliveryStatus.DEAD);
         assertThat(delivery.getRetryCount()).isEqualTo(3);
         assertThat(delivery.getAttemptCount()).isEqualTo(3);
 
@@ -106,7 +106,7 @@ class EmailDeliveryTest {
         );
 
         assertThat(delivery.getStatus())
-                .isEqualTo(EmailDelivery.Status.DEAD);
+                .isEqualTo(EmailDeliveryStatus.DEAD);
         assertThat(delivery.getRetryCount()).isEqualTo(1);
         assertThat(delivery.getClaimToken()).isNull();
         assertThat(delivery.getProcessingStartedAt()).isNull();
@@ -133,10 +133,10 @@ class EmailDeliveryTest {
                         oldClaimToken,
                         now.plusMinutes(12)
                 )
-        ).isInstanceOf(ClaimOwnershipLostException.class);
+        ).isInstanceOf(EmailDeliveryClaimOwnershipLostException.class);
 
         assertThat(delivery.getStatus())
-                .isEqualTo(EmailDelivery.Status.PROCESSING);
+                .isEqualTo(EmailDeliveryStatus.PROCESSING);
         assertThat(delivery.getClaimToken())
                 .isEqualTo(currentClaimToken);
     }
@@ -158,7 +158,7 @@ class EmailDeliveryTest {
         );
 
         assertThat(delivery.getStatus())
-                .isEqualTo(EmailDelivery.Status.FAILED);
+                .isEqualTo(EmailDeliveryStatus.FAILED);
         assertThat(delivery.getAttemptCount()).isZero();
         assertThat(delivery.getRetryCount()).isZero();
         assertThat(delivery.getNextAttemptAt())
@@ -186,7 +186,7 @@ class EmailDeliveryTest {
         delivery.requeueDead(requeuedAt);
 
         assertThat(delivery.getStatus())
-                .isEqualTo(EmailDelivery.Status.PENDING);
+                .isEqualTo(EmailDeliveryStatus.PENDING);
         assertThat(delivery.getRetryCount()).isZero();
         assertThat(delivery.getAttemptCount()).isZero();
         assertThat(delivery.getLeaseExpiredCount()).isZero();

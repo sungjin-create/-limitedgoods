@@ -5,7 +5,7 @@ import com.limitedgoods.limitedgoods.notification.exception.EmailInfrastructureE
 import com.limitedgoods.limitedgoods.notification.exception.NonRetryableEmailException;
 import com.limitedgoods.limitedgoods.notification.exception.RetryableEmailException;
 import com.limitedgoods.limitedgoods.notification.infrastructure.mail.EmailProviderCircuit;
-import com.limitedgoods.limitedgoods.notification.infrastructure.mail.EmailSender;
+import com.limitedgoods.limitedgoods.notification.sendor.EmailSender;
 import com.limitedgoods.limitedgoods.notification.repository.EmailDeliveryRepository;
 import com.limitedgoods.limitedgoods.notification.template.EmailContent;
 import com.limitedgoods.limitedgoods.notification.template.EmailTemplateData;
@@ -32,7 +32,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class EmailDeliveryServiceTest {
+class EmailDeliveryProcessorTest {
 
     @Mock
     private EmailDeliveryRepository repository;
@@ -47,13 +47,13 @@ class EmailDeliveryServiceTest {
     private EmailTemplateRegistry templateRegistry;
 
     private EmailProviderCircuit providerCircuit;
-    private EmailDeliveryService service;
+    private EmailDeliveryProcessor service;
 
     @BeforeEach
     void setUp() {
         providerCircuit = new EmailProviderCircuit();
 
-        service = new EmailDeliveryService(
+        service = new EmailDeliveryProcessor(
                 repository,
                 emailSender,
                 stateService,
@@ -73,7 +73,7 @@ class EmailDeliveryServiceTest {
     @DisplayName("이메일 발송에 성공하면 SENT 상태로 변경한다")
     void sendSuccess() {
         UUID claimToken = UUID.randomUUID();
-        ClaimedEmail claim = new ClaimedEmail(1L, claimToken);
+        ClaimedEmailDelivery claim = new ClaimedEmailDelivery(1L, claimToken);
 
         EmailDelivery delivery = mockOwnedDelivery(claimToken);
         EmailTemplateKey key = templateKey();
@@ -88,7 +88,7 @@ class EmailDeliveryServiceTest {
         when(templateRegistry.render(key, data))
                 .thenReturn(content);
 
-        service.send(claim);
+        service.process(claim);
 
         verify(emailSender).send(
                 "buyer@example.com",
@@ -107,14 +107,14 @@ class EmailDeliveryServiceTest {
     @DisplayName("claim 소유권이 없으면 이메일을 발송하지 않는다")
     void skipWhenClaimOwnershipWasLost() {
         UUID claimToken = UUID.randomUUID();
-        ClaimedEmail claim = new ClaimedEmail(1L, claimToken);
+        ClaimedEmailDelivery claim = new ClaimedEmailDelivery(1L, claimToken);
 
         EmailDelivery delivery = mock(EmailDelivery.class);
         when(repository.findById(1L))
                 .thenReturn(Optional.of(delivery));
         when(delivery.isOwnedBy(claimToken)).thenReturn(false);
 
-        service.send(claim);
+        service.process(claim);
 
         verifyNoInteractions(emailSender);
         verifyNoInteractions(templateRegistry);
@@ -125,7 +125,7 @@ class EmailDeliveryServiceTest {
     @DisplayName("일시적인 이메일 실패는 재시도 가능한 실패로 처리한다")
     void handleRetryableFailure() {
         UUID claimToken = UUID.randomUUID();
-        ClaimedEmail claim = new ClaimedEmail(1L, claimToken);
+        ClaimedEmailDelivery claim = new ClaimedEmailDelivery(1L, claimToken);
 
         EmailDelivery delivery = prepareRenderableDelivery(claimToken);
         RetryableEmailException exception =
@@ -138,7 +138,7 @@ class EmailDeliveryServiceTest {
                 .when(emailSender)
                 .send(anyString(), anyString(), anyString());
 
-        service.send(claim);
+        service.process(claim);
 
         verify(stateService).markRetryableFailure(
                 eq(claim),
@@ -157,7 +157,7 @@ class EmailDeliveryServiceTest {
     @DisplayName("재시도 불가능한 이메일 실패는 영구 실패로 처리한다")
     void handleNonRetryableFailure() {
         UUID claimToken = UUID.randomUUID();
-        ClaimedEmail claim = new ClaimedEmail(1L, claimToken);
+        ClaimedEmailDelivery claim = new ClaimedEmailDelivery(1L, claimToken);
 
         prepareRenderableDelivery(claimToken);
 
@@ -171,7 +171,7 @@ class EmailDeliveryServiceTest {
                 .when(emailSender)
                 .send(anyString(), anyString(), anyString());
 
-        service.send(claim);
+        service.process(claim);
 
         verify(stateService).markPermanentFailure(
                 claim,
@@ -188,7 +188,7 @@ class EmailDeliveryServiceTest {
     @DisplayName("이메일 인프라 장애가 발생하면 claim을 반환하고 Circuit을 연다")
     void handleInfrastructureFailure() {
         UUID claimToken = UUID.randomUUID();
-        ClaimedEmail claim = new ClaimedEmail(1L, claimToken);
+        ClaimedEmailDelivery claim = new ClaimedEmailDelivery(1L, claimToken);
 
         prepareRenderableDelivery(claimToken);
 
@@ -202,7 +202,7 @@ class EmailDeliveryServiceTest {
                 .when(emailSender)
                 .send(anyString(), anyString(), anyString());
 
-        assertThatThrownBy(() -> service.send(claim))
+        assertThatThrownBy(() -> service.process(claim))
                 .isSameAs(exception);
 
         verify(stateService)
