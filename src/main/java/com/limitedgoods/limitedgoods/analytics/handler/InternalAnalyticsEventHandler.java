@@ -18,17 +18,10 @@ public class InternalAnalyticsEventHandler {
     private static final String CONSUMER_NAME =
             "analytics";
 
-    private final DailySalesProjectionRepository
-            dailySalesRepository;
-
-    private final ProductSalesProjectionRepository
-            productSalesRepository;
-
-    private final DailyOrderFunnelProjectionRepository
-            orderFunnelRepository;
-
-    private final ProcessedEventRepository
-            processedEventRepository;
+    private final DailySalesProjectionRepository dailySalesRepository;
+    private final ProductSalesProjectionRepository productSalesRepository;
+    private final DailyOrderFunnelProjectionRepository orderFunnelRepository;
+    private final ProcessedEventRepository processedEventRepository;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void handle(
@@ -148,9 +141,14 @@ public class InternalAnalyticsEventHandler {
             return;
         }
 
+        long refundedQuantity = event.items().stream()
+                .mapToLong(OrderCanceledItem::quantity)
+                .sum();
+
         dailySalesRepository.addRefund(
                 event.canceledAt().toLocalDate(),
-                event.refundAmount()
+                event.refundAmount(),
+                refundedQuantity
         );
 
         for (OrderCanceledItem item : event.items()) {

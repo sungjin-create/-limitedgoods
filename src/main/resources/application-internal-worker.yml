@@ -3,9 +3,9 @@ outbox:
     delay: 30000
 
 spring:
-  kafka:
-    listener:
-      auto-startup: false
+#  kafka:
+#    listener:
+#      auto-startup: false
   mail:
     host: ${MAIL_HOST:}
     port: ${MAIL_PORT:587}
