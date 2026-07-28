@@ -20,6 +20,7 @@ import java.util.List;
 
 @Slf4j
 @Component
+@Profile("internal-worker")
 @ConditionalOnProperty(
         name = "app.mail.enabled",
         havingValue = "true"

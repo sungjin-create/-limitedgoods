@@ -16,6 +16,7 @@ import java.util.List;
 
 @Slf4j
 @Component
+@Profile("internal-worker")
 @RequiredArgsConstructor
 public class InternalOutboxWorker {
 
