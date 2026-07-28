@@ -247,6 +247,16 @@ public enum ErrorCode {
             HttpStatus.CONFLICT,
             "EMAIL_002",
             "DEAD 상태의 이메일만 다시 처리할 수 있습니다."
+    ),
+    UNAUTHORIZED(
+            HttpStatus.UNAUTHORIZED,
+            "AUTH_001",
+            "인증이 필요합니다."
+    ),
+    FORBIDDEN(
+            HttpStatus.FORBIDDEN,
+            "AUTH_002",
+            "접근 권한이 없습니다."
     )
     ;
 
