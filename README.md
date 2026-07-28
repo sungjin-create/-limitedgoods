@@ -181,7 +181,6 @@ Prometheus는 Docker 컨테이너에서 `host.docker.internal:8080`의 백엔드
 ## 현재 제한과 후속 작업
 
 - 통계는 내부 Worker가 갱신하므로 비동기 처리 지연이 존재합니다.
-- 일별 환불 수량 갱신 native SQL은 현재 column/value 구문이 맞지 않아 수정이 필요합니다.
 - 관리자 계정 bootstrap 기능이 없어 로컬 DB에서 역할을 변경해야 합니다.
 - 대기 예상 시간은 `position × 2초`인 단순 추정값입니다.
 - 대기열 이탈자의 Sorted Set entry를 자동 정리하는 정책이 아직 없습니다.

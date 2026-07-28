@@ -91,9 +91,6 @@ scrape합니다. Grafana datasource와 dashboard는 `monitoring/grafana/provisio
 
 ## 현재 확인된 주의점
 
-- `DailySalesProjectionRepository.addRefund`의 native SQL은 현재 column/value 개수와
-  구문이 맞지 않아 환불 이벤트 처리 시 실패할 가능성이 있습니다. 문서의 지표 정의는
-  entity와 API가 의도하는 계약이며, 운영 전에 이 쿼리를 수정하고 통합 테스트해야 합니다.
 - `init.sql`은 `daily_sales_projection.refunded_quantity`를 포함하지 않습니다. 실제
   애플리케이션 schema 기준은 Flyway `V1`과 `V2` migration입니다.
 - projection 재구축용 운영 command는 아직 없습니다. 데이터 보정 시 멱등 테이블과
