@@ -1,6 +1,6 @@
 package com.limitedgoods.limitedgoods.cart.service;
 
-import com.limitedgoods.limitedgoods.cart.dto.CartItemResponseDto;
+import com.limitedgoods.limitedgoods.cart.dto.CartItemResponse;
 import com.limitedgoods.limitedgoods.cart.entity.Cart;
 import com.limitedgoods.limitedgoods.cart.entity.CartItem;
 import com.limitedgoods.limitedgoods.cart.repository.CartItemRepository;
@@ -30,7 +30,7 @@ public class CartService {
     private final ProductRepository productRepository;
 
     @Transactional
-    public List<CartItemResponseDto> getCartItemList(Long userId){
+    public List<CartItemResponse> getCartItemList(Long userId){
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
@@ -45,7 +45,7 @@ public class CartService {
     }
 
     @Transactional
-    public CartItemResponseDto addToCart(Long userId, Long productId, int quantity){
+    public CartItemResponse addToCart(Long userId, Long productId, int quantity){
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
@@ -55,7 +55,7 @@ public class CartService {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_PRODUCT_ID));
 
-        if (cartItemRepository.existsCartItemByProduct(product)) {
+        if (cartItemRepository.existsByCartIdAndProductId(cart.getId(), product.getId())) {
             throw new BusinessException(ErrorCode.CART_ITEM_ALREADY_ADD);
         }
 
@@ -64,7 +64,7 @@ public class CartService {
         }
 
         int price = product.getPrice();
-        int totalPrice = price * quantity;
+        long totalPrice = Math.multiplyExact((long) price, quantity);
 
         CartItem cartItem = cartItemRepository.save(
                 CartItem.builder()
@@ -89,7 +89,7 @@ public class CartService {
         cartRepository.findByUser(user)
                 .orElseGet(()->createCart(user));
 
-        CartItem cartItem = cartItemRepository.findById(cartItemId)
+        CartItem cartItem = cartItemRepository.findByIdAndCartUserId(cartItemId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.CART_ITEM_NOT_FOUND));
 
         Product product = productRepository.findById(cartItem.getProduct().getId())
@@ -113,7 +113,7 @@ public class CartService {
         cartRepository.findByUser(user)
                 .orElseThrow(()-> new BusinessException(ErrorCode.CART_NOT_FOUND));
 
-        cartItemRepository.findById(cartItemId)
+        cartItemRepository.findByIdAndCartUserId(cartItemId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.CART_ITEM_NOT_FOUND));
 
         cartItemRepository.deleteById(cartItemId);
@@ -141,9 +141,9 @@ public class CartService {
                         .build());
     }
 
-    private CartItemResponseDto toCartItemResponseDto(CartItem cartItem){
+    private CartItemResponse toCartItemResponseDto(CartItem cartItem){
 
-        return CartItemResponseDto.builder()
+        return CartItemResponse.builder()
                 .id(cartItem.getId())
                 .productId(cartItem.getProduct().getId())
                 .productName(cartItem.getProduct().getName())

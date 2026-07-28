@@ -4,6 +4,7 @@ import com.limitedgoods.limitedgoods.cart.dto.*;
 import com.limitedgoods.limitedgoods.cart.service.CartService;
 import com.limitedgoods.limitedgoods.common.response.ApiResponse;
 import com.limitedgoods.limitedgoods.security.user.CustomUserDetails;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -19,33 +20,33 @@ public class CartController {
     private final CartService cartService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<CartItemResponseDto>>> getCart(
+    public ResponseEntity<ApiResponse<List<CartItemResponse>>> getCart(
             @AuthenticationPrincipal CustomUserDetails customUserDetails
     ){
-        List<CartItemResponseDto> cartItemList =  cartService.getCartItemList(customUserDetails.getUserId());
+        List<CartItemResponse> cartItemList =  cartService.getCartItemList(customUserDetails.getUserId());
         return ResponseEntity.ok(ApiResponse.success(cartItemList));
     }
 
     @PostMapping("/item/add")
-    public ResponseEntity<ApiResponse<CartItemResponseDto>> addToCart(
+    public ResponseEntity<ApiResponse<CartItemResponse>> addToCart(
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
-            @RequestBody CartItemRequestDto cartItemRequestDto
+            @Valid @RequestBody CartItemRequest cartItemRequest
     ){
         Long userId = customUserDetails.getUserId();
-        Long productId = cartItemRequestDto.getProductId();
-        int quantity = cartItemRequestDto.getQuantity();
-        CartItemResponseDto cartItemResponseDto = cartService.addToCart(userId, productId, quantity);
-        return ResponseEntity.ok(ApiResponse.success(cartItemResponseDto));
+        Long productId = cartItemRequest.productId();
+        int quantity = cartItemRequest.quantity();
+        CartItemResponse cartItemResponse = cartService.addToCart(userId, productId, quantity);
+        return ResponseEntity.ok(ApiResponse.success(cartItemResponse));
     }
 
     @PostMapping("/item/update")
-    public ResponseEntity<ApiResponse<CartItemResponseDto>> updateCartItem(
+    public ResponseEntity<ApiResponse<CartItemResponse>> updateCartItem(
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
-            @RequestBody CartItemUpdateRequestDto cartItemUpdateRequestDto
+            @RequestBody CartItemUpdateRequest cartItemUpdateRequest
     ){
         Long userId = customUserDetails.getUserId();
-        Long cartItemId = cartItemUpdateRequestDto.getCartItemId();
-        int quantity = cartItemUpdateRequestDto.getQuantity();
+        Long cartItemId = cartItemUpdateRequest.cartItemId();
+        int quantity = cartItemUpdateRequest.quantity();
         cartService.updateCartItem(userId, cartItemId, quantity);
         return ResponseEntity.ok(ApiResponse.success());
     }

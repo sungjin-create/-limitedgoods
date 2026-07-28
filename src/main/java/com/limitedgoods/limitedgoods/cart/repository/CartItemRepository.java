@@ -9,12 +9,13 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface CartItemRepository extends JpaRepository<CartItem, Long> {
 
     List<CartItem> findCartItemByCart(Cart cart);
 
-    boolean existsCartItemByProduct(Product product);
+    boolean existsByCartIdAndProductId(Long cartId, Long product);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
@@ -26,5 +27,7 @@ public interface CartItemRepository extends JpaRepository<CartItem, Long> {
             @Param("userId") Long userId,
             @Param("productIds") List<Long> productIds
     );
+
+    Optional<CartItem> findByIdAndCartUserId(Long cartItemId, Long userId);
 
 }
