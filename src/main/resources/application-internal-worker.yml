@@ -1,0 +1,32 @@
+outbox:
+  publish:
+    delay: 30000
+
+spring:
+  kafka:
+    listener:
+      auto-startup: false
+  mail:
+    host: ${MAIL_HOST:}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          connectiontimeout: ${MAIL_CONNECTION_TIMEOUT_MS:10000}
+          timeout: ${MAIL_READ_TIMEOUT_MS:10000}
+          writetimeout: ${MAIL_WRITE_TIMEOUT_MS:10000}
+
+app:
+  mail:
+    enabled: ${MAIL_ENABLED:false}
+    from: ${MAIL_FROM:no-reply@limitedgoods.local}
+    retry-delay-ms: 5000
+    max-attempts: 5
+    batch-size: 100
+    infrastructure-backoff-ms: ${MAIL_INFRASTRUCTURE_BACKOFF_MS:300000}
+    processing-lease-seconds: 600
