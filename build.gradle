@@ -44,6 +44,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     implementation 'org.redisson:redisson-spring-boot-starter:3.40.0'
     implementation 'io.micrometer:micrometer-registry-prometheus'
+    testImplementation 'org.springframework.security:spring-security-test'
 
 }
 

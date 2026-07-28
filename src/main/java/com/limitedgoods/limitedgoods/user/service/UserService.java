@@ -27,9 +27,9 @@ public class UserService {
     private final JwtUtil jwtUtil;
 
     public String signUpUsers(UserSignUpRequest userSignUpRequest) {
-        String usersName = userSignUpRequest.getName();
-        String usersEmail = userSignUpRequest.getEmail();
-        String usersPassword = userSignUpRequest.getPassword();
+        String usersName = userSignUpRequest.name();
+        String usersEmail = userSignUpRequest.email();
+        String usersPassword = userSignUpRequest.password();
 
         checkSignUpUsers(usersName, usersEmail, usersPassword);
 
@@ -57,8 +57,8 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public UserLoginResponse loginUsers(UserLoginRequest userLoginRequest) {
-        String email = userLoginRequest.getEmail();
-        String password = userLoginRequest.getPassword();
+        String email = userLoginRequest.email();
+        String password = userLoginRequest.password();
 
         if (email == null || password == null || email.isBlank() || password.isBlank()) {
             throw new BusinessException(ErrorCode.INVALID_INPUT);

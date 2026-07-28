@@ -248,6 +248,7 @@ public enum ErrorCode {
             "EMAIL_002",
             "DEAD 상태의 이메일만 다시 처리할 수 있습니다."
     ),
+
     UNAUTHORIZED(
             HttpStatus.UNAUTHORIZED,
             "AUTH_001",
@@ -257,7 +258,33 @@ public enum ErrorCode {
             HttpStatus.FORBIDDEN,
             "AUTH_002",
             "접근 권한이 없습니다."
-    )
+    ),
+
+    VALIDATION_ERROR(
+            HttpStatus.BAD_REQUEST,
+            "COMMON_002",
+            "요청 값이 올바르지 않습니다."
+    ),
+    INVALID_JSON(
+            HttpStatus.BAD_REQUEST,
+            "COMMON_003",
+            "요청 본문 형식이 올바르지 않습니다."
+    ),
+    MISSING_REQUIRED_VALUE(
+            HttpStatus.BAD_REQUEST,
+            "COMMON_004",
+            "필수 요청 값이 누락되었습니다."
+    ),
+    TYPE_MISMATCH(
+            HttpStatus.BAD_REQUEST,
+            "COMMON_005",
+            "요청 값의 형식이 올바르지 않습니다."
+    ),
+    RESOURCE_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "COMMON_006",
+            "요청한 경로를 찾을 수 없습니다."
+    ),
     ;
 
 

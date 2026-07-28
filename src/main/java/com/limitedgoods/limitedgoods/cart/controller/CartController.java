@@ -42,7 +42,7 @@ public class CartController {
     @PostMapping("/item/update")
     public ResponseEntity<ApiResponse<CartItemResponse>> updateCartItem(
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
-            @RequestBody CartItemUpdateRequest cartItemUpdateRequest
+            @Valid @RequestBody CartItemUpdateRequest cartItemUpdateRequest
     ){
         Long userId = customUserDetails.getUserId();
         Long cartItemId = cartItemUpdateRequest.cartItemId();
