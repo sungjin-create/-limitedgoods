@@ -9,6 +9,7 @@ import com.limitedgoods.limitedgoods.user.dto.response.UserLoginResponse;
 import com.limitedgoods.limitedgoods.user.dto.request.UserSignUpRequest;
 import com.limitedgoods.limitedgoods.user.entity.UserRole;
 import com.limitedgoods.limitedgoods.user.entity.User;
+import com.limitedgoods.limitedgoods.user.entity.UserStatus;
 import com.limitedgoods.limitedgoods.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -39,6 +40,8 @@ public class UserService {
         signUpUser.setPassword(passwordEncoder.encode(usersPassword));
         signUpUser.setCreatedAt(LocalDateTime.now());
         signUpUser.setRole(UserRole.USER);
+        signUpUser.setStatus(UserStatus.ACTIVE);
+        signUpUser.setTokenVersion(0);
 
         userRepository.save(signUpUser);
         return usersEmail;
@@ -71,7 +74,12 @@ public class UserService {
             throw new BusinessException(ErrorCode.INVALID_INPUT);
         }
 
-        String accessToken = jwtUtil.generateToken(user.getId(), user.getEmail(), user.getRole());
+        String accessToken = jwtUtil.generateAccessToken(
+                user.getId(),
+                user.getEmail(),
+                user.getRole(),
+                user.getTokenVersion()
+        );
         return new UserLoginResponse(accessToken);
     }
 

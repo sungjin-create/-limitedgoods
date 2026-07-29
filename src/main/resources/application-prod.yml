@@ -1,3 +1,25 @@
-outbox:
-  publish:
-    delay: 1000
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST}
+      port: ${SPRING_DATA_REDIS_PORT}
+
+jwt:
+  secret-base64: ${JWT_SECRET_BASE64}
+  access-expiration: ${JWT_ACCESS_EXPIRATION:15m}
+
+app:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS}
+
+monitoring:
+  prometheus:
+    base-url: ${PROMETHEUS_BASE_URL}
+
+  loki:
+    base-url: ${LOKI_BASE_URL}

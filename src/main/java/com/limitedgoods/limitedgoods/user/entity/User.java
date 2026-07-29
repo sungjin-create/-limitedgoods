@@ -24,4 +24,30 @@ public class User {
     private UserRole role;
     private LocalDateTime createdAt;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private UserStatus status = UserStatus.ACTIVE;
+
+    @Column(name = "token_version", nullable = false)
+    private long tokenVersion;
+
+    public void changeRole(UserRole role) {
+        this.role = role;
+        invalidateTokens();
+    }
+
+    public void suspend() {
+        this.status = UserStatus.SUSPENDED;
+        invalidateTokens();
+    }
+
+    public void activate() {
+        this.status = UserStatus.ACTIVE;
+        invalidateTokens();
+    }
+
+    public void invalidateTokens() {
+        this.tokenVersion++;
+    }
+
 }

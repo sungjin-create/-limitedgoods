@@ -1,14 +1,8 @@
 spring:
-  config:
-    import: optional:file:.env[.properties]
-
   application:
     name: limitedgoods
 
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/limitedgoods_flyway}
-    username: ${SPRING_DATASOURCE_USERNAME:postgres}
-    password: ${SPRING_DATASOURCE_PASSWORD:fbwls9663}
     driver-class-name: org.postgresql.Driver
 
     hikari:
@@ -27,8 +21,6 @@ spring:
 
   data:
     redis:
-      host: ${SPRING_DATA_REDIS_HOST:localhost}
-      port: ${SPRING_DATA_REDIS_PORT:6379}
       timeout: 6000ms
 
 server:
@@ -37,8 +29,7 @@ server:
       max: 200
 
 jwt:
-  secret: limitedgoods-secret-key-must-be-at-least-256-bits-long
-  expiration: 86400000
+  access-expiration: 15m
 
 management:
   server:
@@ -48,49 +39,3 @@ management:
     web:
       exposure:
         include: health,info,prometheus
-
-  endpoint:
-    health:
-      show-components: always
-      show-details: when-authorized
-      probes:
-        enabled: true
-
-  metrics:
-    tags:
-      application: ${spring.application.name}
-      environment: ${APP_ENV:local}
-
-    distribution:
-      percentiles-histogram:
-        http.server.requests: true
-
-      slo:
-        http.server.requests: 100ms,300ms,500ms,1s,2s
-
-  prometheus:
-    metrics:
-      export:
-        enabled: true
-
-logging:
-  level:
-    root: INFO
-#    com.limitedgoods: DEBUG
-#    org.hibernate.SQL: DEBUG
-#    org.hibernate.orm.jdbc.bind: TRACE
-#    org.springframework.security: WARN
-
-outbox:
-  publish:
-    delay: 300000
-
-monitoring:
-  prometheus:
-    base-url: ${PROMETHEUS_BASE_URL:http://localhost:9090}
-  loki:
-    base-url: ${LOKI_BASE_URL:http://localhost:3100}
-
-payment:
-  refund:
-    reconcile-delay-ms: 10000
