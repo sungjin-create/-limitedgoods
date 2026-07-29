@@ -7,14 +7,17 @@ import com.limitedgoods.limitedgoods.queue.dto.QueueStatusResponse;
 import com.limitedgoods.limitedgoods.queue.service.QueueService;
 import com.limitedgoods.limitedgoods.security.user.CustomUserDetails;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/user/queue")
 @RequiredArgsConstructor
+@Validated
 public class QueueController {
 
     private final QueueService queueService;
@@ -31,7 +34,7 @@ public class QueueController {
     ) {
         QueueStatusResponse response = queueService.enterQueue(
                 userDetails.getUserId(),
-                request.getProductId()
+                request.productId()
         );
         return ResponseEntity.ok(ApiResponse.success(response));
     }
@@ -42,8 +45,12 @@ public class QueueController {
      */
     @GetMapping("/status")
     public ResponseEntity<ApiResponse<QueueStatusResponse>> getStatus(
-            @RequestParam Long productId,
-            @AuthenticationPrincipal CustomUserDetails userDetails
+            @RequestParam
+            @Positive(message = "productId는 1 이상의 값이어야 합니다.")
+            Long productId,
+
+            @AuthenticationPrincipal
+            CustomUserDetails userDetails
     ) {
         QueueStatusResponse response = queueService.getStatus(
                 userDetails.getUserId(),
@@ -64,10 +71,17 @@ public class QueueController {
 
     @DeleteMapping("/leave")
     public ResponseEntity<ApiResponse<Void>> leave(
-            @RequestParam Long productId,
-            @AuthenticationPrincipal CustomUserDetails userDetails
+            @RequestParam
+            @Positive(message = "productId는 1 이상의 값이어야 합니다.")
+            Long productId,
+
+            @AuthenticationPrincipal
+            CustomUserDetails userDetails
     ) {
-        queueService.leaveQueue(userDetails.getUserId(), productId);
+        queueService.leaveQueue(
+                userDetails.getUserId(),
+                productId
+        );
 
         return ResponseEntity.ok(ApiResponse.success());
     }

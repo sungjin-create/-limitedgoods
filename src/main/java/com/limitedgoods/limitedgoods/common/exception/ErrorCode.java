@@ -251,6 +251,11 @@ public enum ErrorCode {
             "QUEUE_006",
             "판매가 종료되어 대기열이 닫혔습니다."
     ),
+    QUEUE_PRODUCT_NOT_SUPPORTED(
+            HttpStatus.BAD_REQUEST,
+            "QUEUE_007",
+            "한정 상품만 대기열에 입장할 수 있습니다."
+    ),
 
     EMAIL_DELIVERY_NOT_FOUND(
             HttpStatus.NOT_FOUND,
