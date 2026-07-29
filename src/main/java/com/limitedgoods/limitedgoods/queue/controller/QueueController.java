@@ -2,6 +2,7 @@ package com.limitedgoods.limitedgoods.queue.controller;
 
 import com.limitedgoods.limitedgoods.common.response.ApiResponse;
 import com.limitedgoods.limitedgoods.queue.dto.QueueEnterRequest;
+import com.limitedgoods.limitedgoods.queue.dto.QueueHeartbeatRequest;
 import com.limitedgoods.limitedgoods.queue.dto.QueueStatusResponse;
 import com.limitedgoods.limitedgoods.queue.service.QueueService;
 import com.limitedgoods.limitedgoods.security.user.CustomUserDetails;
@@ -49,5 +50,25 @@ public class QueueController {
                 productId
         );
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PostMapping("/heartbeat")
+    public ResponseEntity<ApiResponse<Void>> heartbeat(
+            @Valid @RequestBody QueueHeartbeatRequest request,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        queueService.heartbeat(userDetails.getUserId(), request.productId());
+
+        return ResponseEntity.ok(ApiResponse.success());
+    }
+
+    @DeleteMapping("/leave")
+    public ResponseEntity<ApiResponse<Void>> leave(
+            @RequestParam Long productId,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        queueService.leaveQueue(userDetails.getUserId(), productId);
+
+        return ResponseEntity.ok(ApiResponse.success());
     }
 }

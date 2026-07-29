@@ -20,6 +20,7 @@ import com.limitedgoods.limitedgoods.order.repository.OrderItemRepository;
 import com.limitedgoods.limitedgoods.order.repository.OrderRepository;
 import com.limitedgoods.limitedgoods.product.repository.ProductRepository;
 import com.limitedgoods.limitedgoods.product.service.ProductSoldOutCacheService;
+import com.limitedgoods.limitedgoods.queue.service.QueueMaintenanceService;
 import com.limitedgoods.limitedgoods.user.entity.User;
 import com.limitedgoods.limitedgoods.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -47,8 +48,7 @@ public class OrderCreateTransactionService {
     private final OrderStatusHistoryService historyService;
     private final ApplicationEventPublisher eventPublisher;
     private final OutboxEventWriter outboxEventWriter;
-
-
+    private final QueueMaintenanceService queueMaintenanceService;
 
     @Transactional
     public OrderResponse createOrder(
@@ -105,11 +105,7 @@ public class OrderCreateTransactionService {
     }
 
     @Transactional(readOnly = true)
-    public OrderResponse findIdempotentOrder(
-            Long userId,
-            String checkoutToken,
-            String requestFingerprint
-    ) {
+    public OrderResponse findIdempotentOrder(Long userId, String checkoutToken, String requestFingerprint) {
         Optional<Order> optionalOrder = findByCheckoutToken(userId, checkoutToken);
 
         if (optionalOrder.isPresent()) {
@@ -129,10 +125,7 @@ public class OrderCreateTransactionService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
     }
 
-    private Order findExistingOrder(
-            Long userId,
-            String checkoutToken
-    ) {
+    private Order findExistingOrder(Long userId, String checkoutToken) {
         return orderRepository.findByUserIdAndCheckoutToken(userId,checkoutToken)
                 .orElse(null);
     }
@@ -140,7 +133,11 @@ public class OrderCreateTransactionService {
     private void registerSoldOutCacheAfterCommit(Set<Long> productIds) {
         List<Long> soldOutProductIds = productRepository.findSoldOutProductIds(productIds);
 
-        soldOutProductIds.forEach( productSoldOutCacheService::markSoldOutAfterCommit);
+        soldOutProductIds.forEach(productId -> {
+            productSoldOutCacheService.markSoldOutAfterCommit(productId);
+
+            queueMaintenanceService.clearProductQueueAfterCommit(productId);
+        });
     }
 
     private Order saveOrder(
@@ -163,10 +160,7 @@ public class OrderCreateTransactionService {
         return orderRepository.save(order);
     }
 
-    private void saveOrderItems(
-            Order order,
-            List<OrderItem> orderItems
-    ) {
+    private void saveOrderItems(Order order, List<OrderItem> orderItems) {
         for (OrderItem orderItem : orderItems) {
             orderItem.setOrder(order);
         }
@@ -226,10 +220,7 @@ public class OrderCreateTransactionService {
         }
     }
 
-    private void validateRequestFingerprint(
-            Order order,
-            String requestFingerprint
-    ) {
+    private void validateRequestFingerprint(Order order, String requestFingerprint) {
         if (!order.getRequestFingerprint().equals(requestFingerprint)) {
             throw new BusinessException(ErrorCode.IDEMPOTENCY_KEY_REUSED);
         }

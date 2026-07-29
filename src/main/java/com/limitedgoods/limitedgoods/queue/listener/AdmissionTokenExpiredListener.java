@@ -1,7 +1,7 @@
 package com.limitedgoods.limitedgoods.queue.listener;
 
+import com.limitedgoods.limitedgoods.queue.infrastructure.redis.AdmissionTrackKey;
 import com.limitedgoods.limitedgoods.queue.infrastructure.redis.QueueRedisKeys;
-import com.limitedgoods.limitedgoods.queue.infrastructure.redis.QueueRedisKeys.AdmissionTrackKey;
 import com.limitedgoods.limitedgoods.queue.service.QueueService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,8 +26,7 @@ public class AdmissionTokenExpiredListener implements MessageListener {
     ) {
         String expiredKey = new String(message.getBody(), StandardCharsets.UTF_8);
 
-        Optional<AdmissionTrackKey> parsedKey =
-                QueueRedisKeys.parseAdmissionTrackKey(expiredKey);
+        Optional<AdmissionTrackKey> parsedKey = QueueRedisKeys.parseAdmissionTrackKey(expiredKey);
 
         if (parsedKey.isEmpty()) {
             return;

@@ -19,6 +19,7 @@ public class QueueService {
     private final RedisTemplate<String, String> redisTemplate;
     private final ProductSoldOutCacheService productSoldOutCacheService;
     private final AdmissionTokenService admissionTokenService;
+    private final QueueMaintenanceService queueMaintenanceService;
 
     private static final int    ACTIVE_WINDOW = 50;
 
@@ -27,33 +28,32 @@ public class QueueService {
      * 이미 등록된 경우 기존 순번 유지
      */
     public QueueStatusResponse enterQueue(Long userId, Long productId) {
-        //SoldOut인 경우 큐 진입 차단
         if (productSoldOutCacheService.isSoldOut(productId)) {
+            queueMaintenanceService.clearProductQueue(productId);
             throw new BusinessException(ErrorCode.QUEUE_SOLD_OUT);
         }
 
-        QueueAdmissionResult result = admissionTokenService
-                        .enterQueueAndIssueToken(userId, productId, ACTIVE_WINDOW);
+        queueMaintenanceService.registerActiveProduct(productId);
+
+        QueueAdmissionResult result =
+                admissionTokenService.enterQueueAndIssueToken(
+                        userId,
+                        productId,
+                        ACTIVE_WINDOW
+                );
 
         if (result.admitted()) {
-            return QueueStatusResponse.admitted(
-                    result.admissionToken()
-            );
+            return QueueStatusResponse.admitted(result.admissionToken());
         }
 
-        return QueueStatusResponse.waiting(
-                result.position()
-        );
+        return QueueStatusResponse.waiting(result.position());
     }
 
     /**
      * 대기 상태 폴링
      */
     public QueueStatusResponse getStatus(Long userId, Long productId) {
-        return enterQueue(
-                userId,
-                productId
-        );
+        return enterQueue(userId, productId);
     }
 
     /**
@@ -61,8 +61,39 @@ public class QueueService {
      * 호출 시점: 주문 생성 완료, 입장 토큰 TTL 만료
      */
     public void removeFromQueue(Long userId, Long productId) {
-        redisTemplate.opsForZSet().remove(QueueRedisKeys.waiting(productId), userId.toString());
-        log.info("대기열 제거 userId={}, productId={}", userId, productId);
+        redisTemplate.opsForZSet().remove(
+                QueueRedisKeys.waiting(productId),
+                userId.toString()
+        );
+
+        redisTemplate.opsForZSet().remove(
+                QueueRedisKeys.activity(productId),
+                userId.toString()
+        );
+
+        log.info(
+                "event=queue_member_removed userId={} productId={}",
+                userId,
+                productId
+        );
+    }
+
+    public void heartbeat(Long userId, Long productId) {
+        boolean active = queueMaintenanceService.heartbeat(userId, productId);
+
+        if (!active) {
+            throw new BusinessException(ErrorCode.QUEUE_NOT_FOUND);
+        }
+    }
+
+    public void leaveQueue(Long userId, Long productId) {
+        LeaveResult result = queueMaintenanceService.leave(userId, productId);
+
+        if (result == LeaveResult.PROCESSING) {
+            throw new BusinessException(ErrorCode.QUEUE_LEAVE_NOT_ALLOWED);
+        }
+
+        // 이미 제거된 요청도 성공으로 처리해 DELETE를 멱등하게 만든다.
     }
 
 }

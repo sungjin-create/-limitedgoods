@@ -135,6 +135,13 @@ public class AdmissionTokenService {
                         ARGV[2]
                     )
     
+                    redis.call(
+                        'ZADD',
+                        KEYS[4],
+                        ARGV[1],
+                        ARGV[2]
+                    )
+    
                     local rank = redis.call(
                         'ZRANK',
                         KEYS[1],
@@ -145,8 +152,7 @@ public class AdmissionTokenService {
                         return 'ERROR'
                     end
     
-                    local activeWindow =
-                        tonumber(ARGV[6])
+                    local activeWindow = tonumber(ARGV[6])
     
                     if rank >= activeWindow then
                         local position =
@@ -156,24 +162,20 @@ public class AdmissionTokenService {
                     end
     
                     local existingToken =
-                        redis.call(
-                            'GET',
-                            KEYS[2]
-                        )
+                        redis.call('GET', KEYS[2])
     
                     if existingToken then
                         return 'ADMITTED:' .. existingToken
                     end
     
-                    local tokenCreated =
-                        redis.call(
-                            'SET',
-                            KEYS[3],
-                            ARGV[3],
-                            'PX',
-                            ARGV[5],
-                            'NX'
-                        )
+                    local tokenCreated = redis.call(
+                        'SET',
+                        KEYS[3],
+                        ARGV[3],
+                        'PX',
+                        ARGV[5],
+                        'NX'
+                    )
     
                     if not tokenCreated then
                         return 'RETRY'
@@ -270,21 +272,27 @@ public class AdmissionTokenService {
             String uuid =
                     UUID.randomUUID().toString();
 
-            String result =
-                    redisTemplate.execute(
-                            ENTER_QUEUE_AND_ISSUE_TOKEN_SCRIPT,
-                            List.of(
-                                    queueKey,
-                                    trackKey,
-                                    QueueRedisKeys.admissionToken(productId, uuid)
+            String result = redisTemplate.execute(
+                    ENTER_QUEUE_AND_ISSUE_TOKEN_SCRIPT,
+                    List.of(
+                            QueueRedisKeys.waiting(productId),
+                            QueueRedisKeys.admissionTrack(
+                                    productId,
+                                    userId
                             ),
-                            String.valueOf(System.currentTimeMillis()),
-                            userId.toString(),
-                            tokenValue(userId, productId),
-                            uuid,
-                            String.valueOf(TOKEN_TTL.toMillis()),
-                            String.valueOf(activeWindow)
-                    );
+                            QueueRedisKeys.admissionToken(
+                                    productId,
+                                    uuid
+                            ),
+                            QueueRedisKeys.activity(productId)
+                    ),
+                    String.valueOf(System.currentTimeMillis()),
+                    userId.toString(),
+                    tokenValue(userId, productId),
+                    uuid,
+                    String.valueOf(TOKEN_TTL.toMillis()),
+                    String.valueOf(activeWindow)
+            );
 
             if (result == null
                     || result.equals("ERROR")) {

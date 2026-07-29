@@ -236,6 +236,21 @@ public enum ErrorCode {
             "QUEUE_003",
             "유효하지 않거나 만료된 입장 토큰입니다."
     ),
+    QUEUE_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "QUEUE_004",
+            "참여 중인 대기열을 찾을 수 없습니다."
+    ),
+    QUEUE_LEAVE_NOT_ALLOWED(
+            HttpStatus.CONFLICT,
+            "QUEUE_005",
+            "주문을 생성 중이어서 대기열에서 나갈 수 없습니다."
+    ),
+    QUEUE_CLOSED(
+            HttpStatus.CONFLICT,
+            "QUEUE_006",
+            "판매가 종료되어 대기열이 닫혔습니다."
+    ),
 
     EMAIL_DELIVERY_NOT_FOUND(
             HttpStatus.NOT_FOUND,
