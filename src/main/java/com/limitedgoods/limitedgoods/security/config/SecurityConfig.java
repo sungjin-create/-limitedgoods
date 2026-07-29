@@ -49,9 +49,7 @@ public class SecurityConfig {
                                 "/api/user/signup",
                                 "/api/user/login",
                                 "/api/user/token/refresh",
-                                "/api/user/logout",
-                                "/actuator/health",
-                                "/actuator/health/**"
+                                "/api/user/logout"
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/product/**").permitAll()
 
