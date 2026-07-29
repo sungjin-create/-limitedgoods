@@ -90,3 +90,7 @@ monitoring:
     base-url: ${PROMETHEUS_BASE_URL:http://localhost:9090}
   loki:
     base-url: ${LOKI_BASE_URL:http://localhost:3100}
+
+payment:
+  refund:
+    reconcile-delay-ms: 10000

@@ -66,6 +66,12 @@ public class PaymentAttempt {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Column(name = "approved_amount")
+    private Long approvedAmount;
+
+    @Column(name = "compensation_required", nullable = false)
+    private boolean compensationRequired;
+
     public static PaymentAttempt create(
             Order order,
             String idempotencyKey,
@@ -102,5 +108,16 @@ public class PaymentAttempt {
         this.status = PaymentAttemptStatus.UNKNOWN;
         this.failureReason = reason;
         this.updatedAt = LocalDateTime.now();
+    }
+
+    public void markAmountMismatch(PaymentResult result) {
+        status = PaymentAttemptStatus.UNKNOWN;
+        pgTransactionId = result.transactionId();
+        approvedAmount = result.approvedAmount();
+        approvedAt = result.approvedAt();
+        failureCode = "PAYMENT_AMOUNT_MISMATCH";
+        failureReason = "주문 금액과 PG 승인 금액 불일치";
+        compensationRequired = true;
+        updatedAt = LocalDateTime.now();
     }
 }

@@ -2,8 +2,10 @@ package com.limitedgoods.limitedgoods.backoffice.order.controller;
 
 import com.limitedgoods.limitedgoods.backoffice.order.dto.OrderStatusResponse;
 import com.limitedgoods.limitedgoods.backoffice.order.dto.OrdersResponse;
+import com.limitedgoods.limitedgoods.backoffice.order.service.AdminRefundService;
 import com.limitedgoods.limitedgoods.backoffice.order.service.BackofficeOrderService;
 import com.limitedgoods.limitedgoods.common.response.ApiResponse;
+import com.limitedgoods.limitedgoods.order.dto.response.OrderResponse;
 import com.limitedgoods.limitedgoods.security.user.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -19,6 +21,7 @@ import java.time.LocalDateTime;
 public class BackofficeOrderController {
 
     private final BackofficeOrderService backofficeOrderService;
+    private final AdminRefundService adminRefundService;
 
     @GetMapping
     public ResponseEntity<ApiResponse<OrdersResponse>> findBackofficeOrders(
@@ -39,8 +42,25 @@ public class BackofficeOrderController {
             @PathVariable("orderId") Long orderId,
             @AuthenticationPrincipal CustomUserDetails userDetails){
         return ResponseEntity.ok(ApiResponse.success(
-                backofficeOrderService.completeOrder(
-                        userDetails.getUserId(), orderId)));
+                backofficeOrderService.completeOrder(userDetails.getUserId(), orderId)));
+    }
+
+    @PostMapping("/{orderId}/refund/reconcile")
+    public ResponseEntity<ApiResponse<OrderResponse>> reconcileRefund(
+            @PathVariable Long orderId,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(
+                        adminRefundService.reconcile(userDetails.getUserId(),orderId)));
+    }
+
+    @PostMapping("/{orderId}/refund/retry")
+    public ResponseEntity<ApiResponse<OrderResponse>> retryRefund(
+            @PathVariable Long orderId,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(
+                        adminRefundService.retry(userDetails.getUserId(),orderId)));
     }
 
 }

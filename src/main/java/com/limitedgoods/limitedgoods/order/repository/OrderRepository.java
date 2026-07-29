@@ -184,4 +184,17 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     Optional<Order> findByIdForUpdate(
             @Param("orderId") Long orderId
     );
+
+    @Query("""
+        select order.id
+        from Order order
+        where order.status = :status
+          and order.updatedAt < :staleBefore
+        order by order.updatedAt, order.id
+    """)
+    List<Long> findStaleOrderIds(
+            @Param("status") OrderStatus status,
+            @Param("staleBefore") LocalDateTime staleBefore,
+            Pageable pageable
+    );
 }

@@ -285,6 +285,22 @@ public enum ErrorCode {
             "COMMON_006",
             "요청한 경로를 찾을 수 없습니다."
     ),
+
+    REFUND_ATTEMPT_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "REFUND_001",
+            "환불 시도를 찾을 수 없습니다."
+    ),
+    REFUND_RECONCILE_NOT_ALLOWED(
+            HttpStatus.CONFLICT,
+            "REFUND_002",
+            "현재 상태에서는 환불 결과를 재조회할 수 없습니다."
+    ),
+    REFUND_RETRY_NOT_ALLOWED(
+            HttpStatus.CONFLICT,
+            "REFUND_003",
+            "확정적으로 실패한 환불만 다시 요청할 수 있습니다."
+    ),
     ;
 
 

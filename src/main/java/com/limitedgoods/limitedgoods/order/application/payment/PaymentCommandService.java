@@ -114,7 +114,7 @@ public class PaymentCommandService {
         }
 
         if (result.approvedAmount() != order.getTotalPrice()) {
-            attempt.markUnknown("승인 금액 불일치");
+            attempt.markAmountMismatch(result);
             return false;
         }
 

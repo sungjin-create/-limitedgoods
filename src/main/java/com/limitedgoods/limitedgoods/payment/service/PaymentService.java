@@ -1,8 +1,6 @@
 package com.limitedgoods.limitedgoods.payment.service;
 
-import com.limitedgoods.limitedgoods.payment.dto.PaymentLookupResult;
-import com.limitedgoods.limitedgoods.payment.dto.PaymentRequest;
-import com.limitedgoods.limitedgoods.payment.dto.PaymentResult;
+import com.limitedgoods.limitedgoods.payment.dto.*;
 
 public interface PaymentService {
 
@@ -18,9 +16,14 @@ public interface PaymentService {
             String idempotencyKey
     );
 
-    void cancel(
+    RefundResult cancel(
             String pgTransactionId,
             long amount,
+            String idempotencyKey
+    );
+
+    RefundLookupResult lookupRefund(
+            String pgTransactionId,
             String idempotencyKey
     );
 }
