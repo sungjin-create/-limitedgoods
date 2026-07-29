@@ -6,23 +6,11 @@ public record QueueAdmissionResult(
         int position
 ) {
 
-    public static QueueAdmissionResult admitted(
-            String token
-    ) {
-        return new QueueAdmissionResult(
-                true,
-                token,
-                0
-        );
+    public static QueueAdmissionResult admitted(String token) {
+        return new QueueAdmissionResult(true, token, 0);
     }
 
-    public static QueueAdmissionResult waiting(
-            int position
-    ) {
-        return new QueueAdmissionResult(
-                false,
-                null,
-                position
-        );
+    public static QueueAdmissionResult waiting(int position) {
+        return new QueueAdmissionResult(false, null, position);
     }
 }

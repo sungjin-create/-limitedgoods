@@ -11,6 +11,7 @@ import com.limitedgoods.limitedgoods.order.entity.Order;
 import com.limitedgoods.limitedgoods.order.entity.OrderItem;
 import com.limitedgoods.limitedgoods.order.entity.OrderStatus;
 import com.limitedgoods.limitedgoods.order.metrics.OrderExpiredMetricEvent;
+import com.limitedgoods.limitedgoods.order.purchase.service.UserPurchaseLimitService;
 import com.limitedgoods.limitedgoods.order.repository.OrderItemRepository;
 import com.limitedgoods.limitedgoods.order.repository.OrderRepository;
 import com.limitedgoods.limitedgoods.product.repository.ProductRepository;
@@ -35,6 +36,7 @@ public class OrderExpirationService {
     private final OrderStatusHistoryService historyService;
     private final OrderAccessService orderAccessService;
     private final ApplicationEventPublisher publisher;
+    private final UserPurchaseLimitService userPurchaseLimitService;
 
     @Transactional
     public void expireOrder(Long orderId) {
@@ -57,7 +59,11 @@ public class OrderExpirationService {
         order.markExpired(now);
 
         List<OrderItem> orderItems = orderItemRepository.findByOrderId(orderId);
-        if (orderItems.isEmpty()) throw new BusinessException(ErrorCode.ORDER_NOT_FOUND);
+        if (orderItems.isEmpty()) {
+            throw new BusinessException(ErrorCode.ORDER_NOT_FOUND);
+        }
+
+        userPurchaseLimitService.releaseReservation(order.getUser().getId(), orderItems);
 
         for (OrderItem orderItem : orderItems) {
             Long productId = orderItem.getProduct().getId();
@@ -65,6 +71,7 @@ public class OrderExpirationService {
             productRepository.increaseStock(productId, orderItem.getQuantity());
             productSoldOutCacheService.clearSoldOutAfterCommit(productId);
         }
+
 
         historyService.record(
                 order,

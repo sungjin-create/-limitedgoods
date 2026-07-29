@@ -34,30 +34,17 @@ public class OrderStockReservationService {
         Set<Long> productIds = new HashSet<>();
 
         List<OrderItemRequest> sortedItems = items.stream()
-                .sorted(
-                        Comparator.comparing(
-                                OrderItemRequest::productId
-                        )
-                )
+                .sorted(Comparator.comparing(OrderItemRequest::productId))
                 .toList();
 
         for (OrderItemRequest item : sortedItems) {
             Product product = getProduct(item.productId());
 
-            decreaseStock(
-                    product.getId(),
-                    item.quantity()
-            );
+            decreaseStock(product.getId(), item.quantity());
 
-            long lineTotalPrice = calculateLineTotalPrice(
-                    product.getPrice(),
-                    item.quantity()
-            );
+            long lineTotalPrice = calculateLineTotalPrice(product.getPrice(), item.quantity());
 
-            totalPrice = Math.addExact(
-                    totalPrice,
-                    lineTotalPrice
-            );
+            totalPrice = Math.addExact(totalPrice, lineTotalPrice);
 
             productIds.add(product.getId());
 
@@ -70,26 +57,15 @@ public class OrderStockReservationService {
             );
         }
 
-        return new OrderStockReservationResult(
-                totalPrice,
-                orderItems,
-                productIds
-        );
+        return new OrderStockReservationResult(totalPrice, orderItems, productIds);
     }
 
     private Product getProduct(Long productId) {
         return productRepository.findById(productId)
-                .orElseThrow(() ->
-                        new BusinessException(
-                                ErrorCode.INVALID_PRODUCT_ID
-                        )
-                );
+                .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_PRODUCT_ID));
     }
 
-    private void decreaseStock(
-            Long productId,
-            int quantity
-    ) {
+    private void decreaseStock(Long productId, int quantity) {
         int updated =
                 productRepository.decreaseStockIfPurchasable(
                         productId,
@@ -99,38 +75,27 @@ public class OrderStockReservationService {
                 );
 
         if (updated == 0) {
-            throw new BusinessException(
-                    ErrorCode.INSUFFICIENT_STOCK
-            );
+            throw new BusinessException(ErrorCode.INSUFFICIENT_STOCK);
         }
     }
 
-    private long calculateLineTotalPrice(
-            int price,
-            int quantity
-    ) {
+    private long calculateLineTotalPrice(int price, int quantity) {
         try {
-            return Math.multiplyExact(
-                    (long) price,
-                    quantity
-            );
+            return Math.multiplyExact((long) price, quantity);
         } catch (ArithmeticException exception) {
-            throw new BusinessException(
-                    ErrorCode.INVALID_INPUT
-            );
+            throw new BusinessException(ErrorCode.INVALID_INPUT);
         }
     }
 
-    private OrderItem createOrderItem(
-            Product product,
-            int quantity,
-            long lineTotalPrice
-    ) {
+    private OrderItem createOrderItem(Product product, int quantity, long lineTotalPrice) {
         return OrderItem.builder()
                 .product(product)
                 .quantity(quantity)
                 .price(product.getPrice())
                 .lineTotalPrice(lineTotalPrice)
+                .purchaseLimitAtOrder(
+                        product.getMaxPurchaseQuantity()
+                )
                 .build();
     }
 }

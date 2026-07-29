@@ -14,6 +14,7 @@ import com.limitedgoods.limitedgoods.order.dto.response.OrderResponse;
 import com.limitedgoods.limitedgoods.order.entity.Order;
 import com.limitedgoods.limitedgoods.order.entity.OrderItem;
 import com.limitedgoods.limitedgoods.order.entity.OrderStatus;
+import com.limitedgoods.limitedgoods.order.purchase.service.UserPurchaseLimitService;
 import com.limitedgoods.limitedgoods.order.repository.OrderItemRepository;
 import com.limitedgoods.limitedgoods.payment.metrics.PaymentMetricEvent;
 import com.limitedgoods.limitedgoods.product.repository.ProductRepository;
@@ -37,6 +38,7 @@ public class OrderPaymentService {
     private final OrderStatusHistoryService historyService;
     private final OrderAccessService orderAccessService;
     private final ApplicationEventPublisher eventPublisher;
+    private final UserPurchaseLimitService userPurchaseLimitService;
 
     @Transactional
     public OrderResponse finalizeApprovedPayment(Long userId, Long orderId) {
@@ -58,6 +60,8 @@ public class OrderPaymentService {
         }
 
         OrderStatus previousStatus = order.getStatus();
+
+        userPurchaseLimitService.confirmPayment(userId, orderItemList);
 
         order.markPaid();
 

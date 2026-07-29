@@ -36,4 +36,7 @@ public class OrderItem {
 
     @Column(name = "line_total_price")
     private long lineTotalPrice;
+
+    @Column(name = "purchase_limit_at_order")
+    private Integer purchaseLimitAtOrder;
 }

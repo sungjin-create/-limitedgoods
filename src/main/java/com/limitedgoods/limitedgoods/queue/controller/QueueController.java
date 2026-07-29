@@ -78,10 +78,7 @@ public class QueueController {
             @AuthenticationPrincipal
             CustomUserDetails userDetails
     ) {
-        queueService.leaveQueue(
-                userDetails.getUserId(),
-                productId
-        );
+        queueService.leaveQueue(userDetails.getUserId(), productId);
 
         return ResponseEntity.ok(ApiResponse.success());
     }

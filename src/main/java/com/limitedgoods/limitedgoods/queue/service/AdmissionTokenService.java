@@ -196,12 +196,7 @@ public class AdmissionTokenService {
 
     private final RedisTemplate<String, String> redisTemplate;
 
-    public boolean claim(
-            String token,
-            Long userId,
-            Long productId,
-            String claimId
-    ) {
+    public boolean claim(String token, Long userId, Long productId, String claimId) {
         Long result = redisTemplate.execute(
                 CLAIM_SCRIPT,
                 List.of(QueueRedisKeys.admissionToken(productId, token)),
@@ -216,12 +211,7 @@ public class AdmissionTokenService {
         return Long.valueOf(1L).equals(result);
     }
 
-    public boolean completeConsumption(
-            String token,
-            Long userId,
-            Long productId,
-            String claimId
-    ) {
+    public boolean completeConsumption(String token, Long userId, Long productId, String claimId) {
         Long result = redisTemplate.execute(
                 COMPLETE_CONSUMPTION_SCRIPT,
                 List.of(
@@ -239,12 +229,7 @@ public class AdmissionTokenService {
         return Long.valueOf(1L).equals(result);
     }
 
-    public boolean releaseClaim(
-            String token,
-            Long userId,
-            Long productId,
-            String claimId
-    ) {
+    public boolean releaseClaim(String token, Long userId, Long productId, String claimId) {
         Long result = redisTemplate.execute(
                 RELEASE_CLAIM_SCRIPT,
                 List.of(QueueRedisKeys.admissionToken(productId, token)),
@@ -264,26 +249,15 @@ public class AdmissionTokenService {
             Long productId,
             int activeWindow
     ) {
-        String queueKey = QueueRedisKeys.waiting(productId);
-
-        String trackKey = QueueRedisKeys.admissionTrack(productId, userId);
-
         for (int attempt = 0; attempt < 3; attempt++) {
-            String uuid =
-                    UUID.randomUUID().toString();
+            String uuid = UUID.randomUUID().toString();
 
             String result = redisTemplate.execute(
                     ENTER_QUEUE_AND_ISSUE_TOKEN_SCRIPT,
                     List.of(
                             QueueRedisKeys.waiting(productId),
-                            QueueRedisKeys.admissionTrack(
-                                    productId,
-                                    userId
-                            ),
-                            QueueRedisKeys.admissionToken(
-                                    productId,
-                                    uuid
-                            ),
+                            QueueRedisKeys.admissionTrack(productId, userId),
+                            QueueRedisKeys.admissionToken(productId, uuid),
                             QueueRedisKeys.activity(productId)
                     ),
                     String.valueOf(System.currentTimeMillis()),
@@ -294,11 +268,8 @@ public class AdmissionTokenService {
                     String.valueOf(activeWindow)
             );
 
-            if (result == null
-                    || result.equals("ERROR")) {
-                throw new IllegalStateException(
-                        "대기열 입장 처리에 실패했습니다."
-                );
+            if (result == null || result.equals("ERROR")) {
+                throw new IllegalStateException("대기열 입장 처리에 실패했습니다.");
             }
 
             if (result.equals("RETRY")) {
@@ -306,36 +277,19 @@ public class AdmissionTokenService {
             }
 
             if (result.startsWith("ADMITTED:")) {
-                String token = result.substring(
-                        "ADMITTED:".length()
-                );
-
-                return QueueAdmissionResult.admitted(
-                        token
-                );
+                String token = result.substring("ADMITTED:".length());
+                return QueueAdmissionResult.admitted(token);
             }
 
             if (result.startsWith("WAITING:")) {
-                int position = Integer.parseInt(
-                        result.substring(
-                                "WAITING:".length()
-                        )
-                );
-
-                return QueueAdmissionResult.waiting(
-                        position
-                );
+                int position = Integer.parseInt(result.substring("WAITING:".length()));
+                return QueueAdmissionResult.waiting(position);
             }
 
-            throw new IllegalStateException(
-                    "알 수 없는 대기열 처리 결과입니다: "
-                            + result
-            );
+            throw new IllegalStateException("알 수 없는 대기열 처리 결과입니다: " + result);
         }
 
-        throw new IllegalStateException(
-                "입장 토큰 생성에 실패했습니다."
-        );
+        throw new IllegalStateException("입장 토큰 생성에 실패했습니다.");
     }
 
     private String tokenValue(Long userId, Long productId) {

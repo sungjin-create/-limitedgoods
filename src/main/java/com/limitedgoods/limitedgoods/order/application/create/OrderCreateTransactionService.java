@@ -16,6 +16,7 @@ import com.limitedgoods.limitedgoods.order.entity.OrderItem;
 import com.limitedgoods.limitedgoods.order.entity.OrderStatus;
 import com.limitedgoods.limitedgoods.order.metrics.OrderCreateMetricEvent;
 import com.limitedgoods.limitedgoods.order.metrics.OrderExpiredMetricEvent;
+import com.limitedgoods.limitedgoods.order.purchase.service.UserPurchaseLimitService;
 import com.limitedgoods.limitedgoods.order.repository.OrderItemRepository;
 import com.limitedgoods.limitedgoods.order.repository.OrderRepository;
 import com.limitedgoods.limitedgoods.product.repository.ProductRepository;
@@ -49,6 +50,7 @@ public class OrderCreateTransactionService {
     private final ApplicationEventPublisher eventPublisher;
     private final OutboxEventWriter outboxEventWriter;
     private final QueueMaintenanceService queueMaintenanceService;
+    private final UserPurchaseLimitService userPurchaseLimitService;
 
     @Transactional
     public OrderResponse createOrder(
@@ -71,6 +73,8 @@ public class OrderCreateTransactionService {
         cancelActivePendingOrder(userId);
 
         OrderStockReservationResult reservation = stockReservationService.reserve(items);
+
+        userPurchaseLimitService.reserve(userId, reservation.orderItems());
 
         registerSoldOutCacheAfterCommit(reservation.productIds());
 
@@ -183,6 +187,8 @@ public class OrderCreateTransactionService {
 
             // CREATED, PAYMENT_FAILED → 직접 처리 (expireOrder 호출 대신)
             List<OrderItem> items = orderItemRepository.findByOrderId(order.getId());
+
+            userPurchaseLimitService.releaseReservation(userId, items);
 
             for (OrderItem item : items) {
                 productRepository.increaseStock(
