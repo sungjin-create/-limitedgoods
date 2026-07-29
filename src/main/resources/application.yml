@@ -39,3 +39,7 @@ management:
     web:
       exposure:
         include: health,info,prometheus
+
+queue:
+  cleanup:
+    delay-ms: 10000
