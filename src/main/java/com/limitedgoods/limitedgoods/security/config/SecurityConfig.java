@@ -48,6 +48,8 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/user/signup",
                                 "/api/user/login",
+                                "/api/user/token/refresh",
+                                "/api/user/logout",
                                 "/actuator/health",
                                 "/actuator/health/**"
                         ).permitAll()
