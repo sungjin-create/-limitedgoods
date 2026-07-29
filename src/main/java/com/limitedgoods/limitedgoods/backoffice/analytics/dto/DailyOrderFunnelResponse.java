@@ -10,7 +10,7 @@ public record DailyOrderFunnelResponse(
         long paidOrderCount,
         long paymentFailureAttemptCount,
         long expiredOrderCount,
-        long canceledOrderCount,
+        long refundedOrderCount,
         double paymentConversionRate,
         double expirationRate,
         double refundRate
@@ -23,7 +23,7 @@ public record DailyOrderFunnelResponse(
                 projection.getPaidOrderCount(),
                 projection.getPaymentFailureCount(),
                 projection.getExpiredOrderCount(),
-                projection.getCanceledOrderCount(),
+                projection.getRefundedOrderCount(),
                 roundOneDecimal(projection.getPaymentConversionRate()),
                 roundOneDecimal(projection.getExpirationRate()),
                 roundOneDecimal(projection.getRefundRate())

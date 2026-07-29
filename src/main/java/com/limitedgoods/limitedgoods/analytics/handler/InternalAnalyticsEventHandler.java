@@ -15,8 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class InternalAnalyticsEventHandler {
 
-    private static final String CONSUMER_NAME =
-            "analytics";
+    private static final String CONSUMER_NAME = "analytics";
 
     private final DailySalesProjectionRepository dailySalesRepository;
     private final ProductSalesProjectionRepository productSalesRepository;
@@ -64,11 +63,7 @@ public class InternalAnalyticsEventHandler {
         );
 
         for (OrderPaidItem item : event.items()) {
-            long itemRevenue =
-                    Math.multiplyExact(
-                            (long) item.quantity(),
-                            item.unitPrice()
-                    );
+            long itemRevenue = Math.multiplyExact((long) item.quantity(), item.unitPrice());
 
             productSalesRepository.addSale(
                     item.productId(),
@@ -146,17 +141,13 @@ public class InternalAnalyticsEventHandler {
                 .sum();
 
         dailySalesRepository.addRefund(
-                event.canceledAt().toLocalDate(),
+                event.refundedAt().toLocalDate(),
                 event.refundAmount(),
                 refundedQuantity
         );
 
         for (OrderCanceledItem item : event.items()) {
-            long itemRefundAmount =
-                    Math.multiplyExact(
-                            (long) item.quantity(),
-                            item.unitPrice()
-                    );
+            long itemRefundAmount = Math.multiplyExact((long) item.quantity(), item.unitPrice());
 
             productSalesRepository.addRefund(
                     item.productId(),
@@ -179,18 +170,10 @@ public class InternalAnalyticsEventHandler {
 
     private boolean alreadyProcessed(Long eventId) {
         return processedEventRepository
-                .existsByEventIdAndConsumerName(
-                        eventId,
-                        CONSUMER_NAME
-                );
+                .existsByEventIdAndConsumerName(eventId, CONSUMER_NAME);
     }
 
     private void markProcessed(Long eventId) {
-        processedEventRepository.save(
-                new ProcessedEvent(
-                        eventId,
-                        CONSUMER_NAME
-                )
-        );
+        processedEventRepository.save(new ProcessedEvent(eventId, CONSUMER_NAME));
     }
 }

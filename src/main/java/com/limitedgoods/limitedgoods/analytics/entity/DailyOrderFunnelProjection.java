@@ -38,8 +38,8 @@ public class DailyOrderFunnelProjection {
     @Column(name = "expired_order_count", nullable = false)
     private long expiredOrderCount;
 
-    @Column(name = "canceled_order_count", nullable = false)
-    private long canceledOrderCount;
+    @Column(name = "refunded_order_count", nullable = false)
+    private long refundedOrderCount;
 
     public double getPaymentConversionRate() {
         if (createdOrderCount == 0) {
@@ -66,8 +66,6 @@ public class DailyOrderFunnelProjection {
             return 0;
         }
 
-        return (double) canceledOrderCount
-                / paidOrderCount
-                * 100;
+        return (double) refundedOrderCount / paidOrderCount * 100;
     }
 }

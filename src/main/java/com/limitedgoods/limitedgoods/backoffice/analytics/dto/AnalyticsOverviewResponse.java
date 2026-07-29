@@ -30,7 +30,7 @@ public record AnalyticsOverviewResponse(
             long paidOrderCount,
             long paymentFailureAttemptCount,
             long expiredOrderCount,
-            long canceledOrderCount,
+            long refundedOrderCount,
             double paymentConversionRate,
             double expirationRate,
             double refundRate

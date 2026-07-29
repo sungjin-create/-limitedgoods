@@ -73,12 +73,12 @@ class InternalAnalyticsEventHandlerTest {
     }
 
     @Test
-    void canceledEventUsesRefundDateAndSubtractableProductQuantities() {
+    void refundedEventUsesRefundDateAndSubtractableProductQuantities() {
         LocalDateTime createdAt = LocalDateTime.of(2026, 7, 20, 10, 0);
-        LocalDateTime canceledAt = LocalDateTime.of(2026, 7, 28, 12, 0);
+        LocalDateTime refundedAt = LocalDateTime.of(2026, 7, 28, 12, 0);
         OrderCanceledEvent event = new OrderCanceledEvent(
                 10L, 1L, 30_000L,
-                createdAt, createdAt.plusMinutes(1), canceledAt,
+                createdAt, createdAt.plusMinutes(1), refundedAt,
                 List.of(
                         new OrderCanceledItem(100L, 2, 10_000),
                         new OrderCanceledItem(200L, 1, 10_000)
@@ -87,7 +87,7 @@ class InternalAnalyticsEventHandlerTest {
 
         handler.handle(3L, event);
 
-        verify(dailySalesRepository).addRefund(canceledAt.toLocalDate(), 30_000L, 3L);
+        verify(dailySalesRepository).addRefund(refundedAt.toLocalDate(), 30_000L, 3L);
         verify(productSalesRepository).addRefund(100L, 2, 20_000L);
         verify(productSalesRepository).addRefund(200L, 1, 10_000L);
         verify(funnelRepository).increment(createdAt.toLocalDate(), 0, 0, 0, 0, 1);

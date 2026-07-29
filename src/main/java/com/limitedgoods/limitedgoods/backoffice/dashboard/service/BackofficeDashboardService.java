@@ -53,12 +53,6 @@ public class BackofficeDashboardService {
                 List.of(OrderStatus.CREATED, OrderStatus.PAYMENT_PENDING, OrderStatus.PAYMENT_APPROVED)
         );
 
-        long failedOrExpiredCount = orderRepository.countCreatedBetweenAndStatusIn(
-                todayStart,
-                tomorrowStart,
-                List.of(OrderStatus.PAYMENT_FAILED, OrderStatus.EXPIRED, OrderStatus.CANCELED)
-        );
-
         long lowStockProductCount = productRepository.countLowStockProducts(LOW_STOCK_THRESHOLD);
         long soldOutProductCount = productRepository.countSoldOutProducts();
 
@@ -73,12 +67,54 @@ public class BackofficeDashboardService {
                 .soldOutProductCount(soldOutProductCount)
                 .build();
 
-        BackofficeOrderFlowResponse orderFlow = BackofficeOrderFlowResponse.builder()
-                .createdCount(todayOrderCount)
-                .paidCount(todayPaidOrderCount)
-                .pendingCount(pendingCount)
-                .failedOrExpiredCount(failedOrExpiredCount)
-                .build();
+
+        long paymentFailedCount =
+                orderRepository.countCreatedBetweenAndStatusIn(
+                        todayStart,
+                        tomorrowStart,
+                        List.of(OrderStatus.PAYMENT_FAILED)
+                );
+
+        long expiredCount =
+                orderRepository.countCreatedBetweenAndStatusIn(
+                        todayStart,
+                        tomorrowStart,
+                        List.of(OrderStatus.EXPIRED)
+                );
+
+        long refundRequestedCount =
+                orderRepository.countCreatedBetweenAndStatusIn(
+                        todayStart,
+                        tomorrowStart,
+                        List.of(OrderStatus.CANCEL_REQUESTED)
+                );
+
+        long refundedCount =
+                orderRepository.countCreatedBetweenAndStatusIn(
+                        todayStart,
+                        tomorrowStart,
+                        List.of(OrderStatus.REFUNDED)
+                );
+
+        long refundFailedCount =
+                orderRepository.countCreatedBetweenAndStatusIn(
+                        todayStart,
+                        tomorrowStart,
+                        List.of(OrderStatus.CANCEL_FAILED)
+                );
+
+
+        BackofficeOrderFlowResponse orderFlow =
+                BackofficeOrderFlowResponse.builder()
+                        .createdCount(todayOrderCount)
+                        .paidCount(todayPaidOrderCount)
+                        .pendingCount(pendingCount)
+                        .paymentFailedCount(paymentFailedCount)
+                        .expiredCount(expiredCount)
+                        .refundRequestedCount(refundRequestedCount)
+                        .refundedCount(refundedCount)
+                        .refundFailedCount(refundFailedCount)
+                        .build();
 
         List<BackofficeRecentOrderResponse> recentOrders =
                 backofficeDashboardQueryRepository.findRecentOrders(PageRequest.of(0, 5));
@@ -87,7 +123,9 @@ public class BackofficeDashboardService {
                 lowStockProductCount,
                 soldOutProductCount,
                 pendingCount,
-                failedOrExpiredCount
+                paymentFailedCount,
+                expiredCount,
+                refundFailedCount
         );
 
         return BackofficeResponse.builder()
@@ -118,7 +156,9 @@ public class BackofficeDashboardService {
             long lowStockProductCount,
             long soldOutProductCount,
             long pendingCount,
-            long failedOrExpiredCount
+            long paymentFailedCount,
+            long expiredCount,
+            long refundFailedCount
     ) {
         List<BackofficeAlertResponse> alerts = new java.util.ArrayList<>();
 
@@ -149,11 +189,29 @@ public class BackofficeDashboardService {
                     .build());
         }
 
-        if (failedOrExpiredCount > 0) {
+        if (paymentFailedCount > 0) {
             alerts.add(BackofficeAlertResponse.builder()
                     .level("warning")
-                    .title("실패/만료 주문 " + failedOrExpiredCount + "건")
-                    .detail("결제 실패 또는 만료된 주문 흐름을 확인해 주세요.")
+                    .title("결제 실패 주문 " + paymentFailedCount + "건")
+                    .detail("오늘 생성된 주문 중 결제가 실패한 주문입니다.")
+                    .time("방금")
+                    .build());
+        }
+
+        if (expiredCount > 0) {
+            alerts.add(BackofficeAlertResponse.builder()
+                    .level("warning")
+                    .title("만료 주문 " + expiredCount + "건")
+                    .detail("결제 기한을 초과하여 만료된 주문입니다.")
+                    .time("방금")
+                    .build());
+        }
+
+        if (refundFailedCount > 0) {
+            alerts.add(BackofficeAlertResponse.builder()
+                    .level("critical")
+                    .title("환불 실패 주문 " + refundFailedCount + "건")
+                    .detail("관리자의 재조회 또는 재처리가 필요합니다.")
                     .time("방금")
                     .build());
         }

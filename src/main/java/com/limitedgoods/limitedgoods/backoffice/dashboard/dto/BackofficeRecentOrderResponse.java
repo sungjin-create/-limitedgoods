@@ -14,6 +14,7 @@ public class BackofficeRecentOrderResponse {
     private Long id;
     private String customerEmail;
     private String productName;
+    private long itemCount;
     private long amount;
     private OrderStatus status;
     private LocalDateTime createdAt;

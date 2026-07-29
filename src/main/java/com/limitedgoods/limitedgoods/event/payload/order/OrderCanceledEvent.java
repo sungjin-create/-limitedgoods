@@ -1,5 +1,7 @@
 package com.limitedgoods.limitedgoods.event.payload.order;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -9,7 +11,8 @@ public record OrderCanceledEvent(
         long refundAmount,
         LocalDateTime createdAt,
         LocalDateTime paidAt,
-        LocalDateTime canceledAt,
+        @JsonAlias("canceledAt")
+        LocalDateTime refundedAt,
         List<OrderCanceledItem> items
 ) {
 }

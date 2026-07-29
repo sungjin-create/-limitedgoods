@@ -20,7 +20,7 @@ public interface DailyOrderFunnelProjectionRepository extends JpaRepository<Dail
                         paid_order_count,
                         payment_failure_count,
                         expired_order_count,
-                        canceled_order_count
+                        refunded_order_count
                     )
                     VALUES (
                         :orderDate,
@@ -28,7 +28,7 @@ public interface DailyOrderFunnelProjectionRepository extends JpaRepository<Dail
                         :paidCount,
                         :failureCount,
                         :expiredCount,
-                        :canceledCount
+                        :refundedCount
                     )
                     ON CONFLICT (order_date)
                     DO UPDATE SET
@@ -44,9 +44,9 @@ public interface DailyOrderFunnelProjectionRepository extends JpaRepository<Dail
                         expired_order_count =
                             daily_order_funnel_projection.expired_order_count
                                 + EXCLUDED.expired_order_count,
-                        canceled_order_count =
-                            daily_order_funnel_projection.canceled_order_count
-                                + EXCLUDED.canceled_order_count
+                        refunded_order_count =
+                            daily_order_funnel_projection.refunded_order_count
+                                + EXCLUDED.refunded_order_count
                     """,
             nativeQuery = true
     )
@@ -56,7 +56,7 @@ public interface DailyOrderFunnelProjectionRepository extends JpaRepository<Dail
             @Param("paidCount") long paidCount,
             @Param("failureCount") long failureCount,
             @Param("expiredCount") long expiredCount,
-            @Param("canceledCount") long canceledCount
+            @Param("refundedCount") long refundedCount
     );
 
     List<DailyOrderFunnelProjection> findAllByOrderDateBetweenOrderByOrderDateAsc(

@@ -13,10 +13,13 @@ public interface BackofficeOrderQueryRepository extends JpaRepository<Order, Lon
 
     @Query("""
     select new com.limitedgoods.limitedgoods.backoffice.order.dto.OrderSummaryResponse(
-        coalesce(sum(case when o.status = 'PAYMENT_PENDING' then 1 else 0 end), 0),
-        coalesce(sum(case when o.status = 'PAID' then 1 else 0 end), 0),
-        coalesce(sum(case when o.status = 'CANCELED' then 1 else 0 end), 0),
-        coalesce(sum(case when o.status = 'PAYMENT_FAILED' then 1 else 0 end), 0)
+        coalesce(sum(case when o.status in ('PAYMENT_PENDING', 'PAYMENT_APPROVED') then 1 else 0 end), 0),
+        coalesce(sum(case when o.status in ('PAID', 'COMPLETED') then 1 else 0 end), 0),
+        coalesce(sum(case when o.status = 'CANCEL_REQUESTED' then 1 else 0 end), 0),
+        coalesce(sum(case when o.status = 'REFUNDED' then 1 else 0 end), 0),
+        coalesce(sum(case when o.status = 'PAYMENT_FAILED' then 1 else 0 end), 0),
+        coalesce(sum(case when o.status = 'EXPIRED' then 1 else 0 end), 0),
+        coalesce(sum(case when o.status = 'CANCEL_FAILED' then 1 else 0 end), 0)
     )
     from Order o
     """)
@@ -24,14 +27,17 @@ public interface BackofficeOrderQueryRepository extends JpaRepository<Order, Lon
 
     @Query("""
     select new com.limitedgoods.limitedgoods.backoffice.order.dto.OrderSummaryResponse(
-        coalesce(sum(case when o.status = 'PAYMENT_PENDING' then 1 else 0 end), 0),
-        coalesce(sum(case when o.status = 'PAID' then 1 else 0 end), 0),
-        coalesce(sum(case when o.status = 'CANCELED' then 1 else 0 end), 0),
-        coalesce(sum(case when o.status = 'PAYMENT_FAILED' then 1 else 0 end), 0)
+                coalesce(sum(case when o.status in ('PAYMENT_PENDING', 'PAYMENT_APPROVED') then 1 else 0 end), 0),
+        coalesce(sum(case when o.status in ('PAID', 'COMPLETED') then 1 else 0 end), 0),
+        coalesce(sum(case when o.status = 'CANCEL_REQUESTED' then 1 else 0 end), 0),
+        coalesce(sum(case when o.status = 'REFUNDED' then 1 else 0 end), 0),
+        coalesce(sum(case when o.status = 'PAYMENT_FAILED' then 1 else 0 end), 0),
+        coalesce(sum(case when o.status = 'EXPIRED' then 1 else 0 end), 0),
+        coalesce(sum(case when o.status = 'CANCEL_FAILED' then 1 else 0 end), 0)
     )
     from Order o
-    where (o.createdAt >= :startAt)
-      and (o.createdAt <= :endAt)
+    where o.createdAt >= :startAt
+      and o.createdAt < :endAt
     """)
     OrderSummaryResponse getBackofficeOrderSummary(
             @Param("startAt") LocalDateTime startAt,
