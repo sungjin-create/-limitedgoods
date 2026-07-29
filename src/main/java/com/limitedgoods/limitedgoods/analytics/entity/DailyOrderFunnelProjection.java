@@ -32,8 +32,8 @@ public class DailyOrderFunnelProjection {
     @Column(name = "paid_order_count", nullable = false)
     private long paidOrderCount;
 
-    @Column(name = "payment_failure_count", nullable = false)
-    private long paymentFailureCount;
+    @Column(name = "payment_failure_attempt_count", nullable = false)
+    private long paymentFailureAttemptCount;
 
     @Column(name = "expired_order_count", nullable = false)
     private long expiredOrderCount;

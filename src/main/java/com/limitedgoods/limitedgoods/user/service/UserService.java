@@ -88,6 +88,11 @@ public class UserService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
-        return UserInfoResponse.builder().name(user.getName()).email(user.getEmail()).createdAt(user.getCreatedAt()).build();
+        return new UserInfoResponse(
+                user.getName(),
+                user.getEmail(),
+                user.getRole(),
+                user.getCreatedAt()
+        );
     }
 }

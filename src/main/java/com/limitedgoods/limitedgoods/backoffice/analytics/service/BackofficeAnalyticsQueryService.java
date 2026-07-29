@@ -155,8 +155,8 @@ public class BackofficeAnalyticsQueryService {
                 .mapToLong(DailyOrderFunnelProjection::getPaidOrderCount)
                 .sum();
 
-        long failureCount = projections.stream()
-                .mapToLong(DailyOrderFunnelProjection::getPaymentFailureCount)
+        long failureAttemptCount = projections.stream()
+                .mapToLong(DailyOrderFunnelProjection::getPaymentFailureAttemptCount)
                 .sum();
 
         long expiredCount = projections.stream()
@@ -170,7 +170,7 @@ public class BackofficeAnalyticsQueryService {
         return new AnalyticsOverviewResponse.FunnelSummary(
                 createdCount,
                 paidCount,
-                failureCount,
+                failureAttemptCount,
                 expiredCount,
                 refundedCount,
                 calculateRate(paidCount, createdCount),

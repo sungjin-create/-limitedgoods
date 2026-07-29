@@ -21,7 +21,7 @@ public record DailyOrderFunnelResponse(
                 projection.getOrderDate(),
                 projection.getCreatedOrderCount(),
                 projection.getPaidOrderCount(),
-                projection.getPaymentFailureCount(),
+                projection.getPaymentFailureAttemptCount(),
                 projection.getExpiredOrderCount(),
                 projection.getRefundedOrderCount(),
                 roundOneDecimal(projection.getPaymentConversionRate()),

@@ -1,12 +1,6 @@
 package com.limitedgoods.limitedgoods.user.dto.response;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.Setter;
-
-@Getter
-@Setter
-@AllArgsConstructor
-public class UserLoginResponse {
-    private String accessToken;
+public record UserLoginResponse (
+        String accessToken
+){
 }

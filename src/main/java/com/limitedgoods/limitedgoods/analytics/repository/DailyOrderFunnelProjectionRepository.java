@@ -18,7 +18,7 @@ public interface DailyOrderFunnelProjectionRepository extends JpaRepository<Dail
                         order_date,
                         created_order_count,
                         paid_order_count,
-                        payment_failure_count,
+                        payment_failure_attempt_count,
                         expired_order_count,
                         refunded_order_count
                     )
@@ -38,9 +38,9 @@ public interface DailyOrderFunnelProjectionRepository extends JpaRepository<Dail
                         paid_order_count =
                             daily_order_funnel_projection.paid_order_count
                                 + EXCLUDED.paid_order_count,
-                        payment_failure_count =
-                            daily_order_funnel_projection.payment_failure_count
-                                + EXCLUDED.payment_failure_count,
+                        payment_failure_attempt_count =
+                            daily_order_funnel_projection.payment_failure_attempt_count
+                                + EXCLUDED.payment_failure_attempt_count,
                         expired_order_count =
                             daily_order_funnel_projection.expired_order_count
                                 + EXCLUDED.expired_order_count,
