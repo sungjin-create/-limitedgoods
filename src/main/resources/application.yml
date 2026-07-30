@@ -41,5 +41,8 @@ management:
         include: health,info,prometheus
 
 queue:
+  admission:
+    bypass-enabled: false
+    active-window: ${QUEUE_ADMISSION_ACTIVE_WINDOW:50}
   cleanup:
     delay-ms: 10000

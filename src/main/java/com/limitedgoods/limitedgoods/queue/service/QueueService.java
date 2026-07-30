@@ -2,6 +2,7 @@ package com.limitedgoods.limitedgoods.queue.service;
 
 import com.limitedgoods.limitedgoods.common.exception.BusinessException;
 import com.limitedgoods.limitedgoods.common.exception.ErrorCode;
+import com.limitedgoods.limitedgoods.queue.config.QueueAdmissionProperties;
 import com.limitedgoods.limitedgoods.queue.dto.QueueAdmissionResult;
 import com.limitedgoods.limitedgoods.queue.dto.QueueStatusResponse;
 import com.limitedgoods.limitedgoods.queue.infrastructure.redis.QueueRedisKeys;
@@ -19,8 +20,7 @@ public class QueueService {
     private final AdmissionTokenService admissionTokenService;
     private final QueueMaintenanceService queueMaintenanceService;
     private final QueueProductStateCacheService queueProductStateCacheService;
-
-    private static final int    ACTIVE_WINDOW = 50;
+    private final QueueAdmissionProperties admissionProperties;
 
     /**
      * 대기열 진입
@@ -35,7 +35,7 @@ public class QueueService {
                 admissionTokenService.enterQueueAndIssueToken(
                         userId,
                         productId,
-                        ACTIVE_WINDOW
+                        admissionProperties.getActiveWindow()
                 );
 
         return toResponse(result);
@@ -51,7 +51,7 @@ public class QueueService {
                 admissionTokenService.getStatusAndIssueTokenIfEligible(
                         userId,
                         productId,
-                        ACTIVE_WINDOW
+                        admissionProperties.getActiveWindow()
                 );
 
         return toResponse(result);
