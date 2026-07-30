@@ -2,6 +2,7 @@ package com.limitedgoods.limitedgoods.product.repository;
 
 import com.limitedgoods.limitedgoods.product.entity.Product;
 import com.limitedgoods.limitedgoods.product.entity.ProductStatus;
+import com.limitedgoods.limitedgoods.product.entity.ProductType;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -139,4 +140,6 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             @Param("activeStatus") ProductStatus activeStatus,
             @Param("scheduledStatus") ProductStatus scheduledStatus
     );
+
+    List<Product> findAllByType(ProductType type);
 }

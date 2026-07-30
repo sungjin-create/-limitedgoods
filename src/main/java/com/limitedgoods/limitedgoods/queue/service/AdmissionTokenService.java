@@ -1,5 +1,7 @@
 package com.limitedgoods.limitedgoods.queue.service;
 
+import com.limitedgoods.limitedgoods.common.exception.BusinessException;
+import com.limitedgoods.limitedgoods.common.exception.ErrorCode;
 import com.limitedgoods.limitedgoods.queue.dto.QueueAdmissionResult;
 import com.limitedgoods.limitedgoods.queue.infrastructure.redis.QueueRedisKeys;
 import lombok.RequiredArgsConstructor;
@@ -193,6 +195,68 @@ public class AdmissionTokenService {
                     """,
                     String.class
             );
+    private static final RedisScript<String>
+            GET_STATUS_AND_ISSUE_TOKEN_SCRIPT =
+            RedisScript.of(
+                    """
+                    local rank = redis.call(
+                        'ZRANK',
+                        KEYS[1],
+                        ARGV[2]
+                    )
+    
+                    if not rank then
+                        return 'NOT_FOUND'
+                    end
+    
+                    redis.call(
+                        'ZADD',
+                        KEYS[4],
+                        ARGV[1],
+                        ARGV[2]
+                    )
+    
+                    local activeWindow = tonumber(ARGV[6])
+    
+                    if rank >= activeWindow then
+                        local position = rank - activeWindow + 1
+                        return 'WAITING:' .. position
+                    end
+    
+                    local existingToken = redis.call(
+                        'GET',
+                        KEYS[2]
+                    )
+    
+                    if existingToken then
+                        return 'ADMITTED:' .. existingToken
+                    end
+    
+                    local tokenCreated = redis.call(
+                        'SET',
+                        KEYS[3],
+                        ARGV[3],
+                        'PX',
+                        ARGV[5],
+                        'NX'
+                    )
+    
+                    if not tokenCreated then
+                        return 'RETRY'
+                    end
+    
+                    redis.call(
+                        'SET',
+                        KEYS[2],
+                        ARGV[4],
+                        'PX',
+                        ARGV[5]
+                    )
+    
+                    return 'ADMITTED:' .. ARGV[4]
+                    """,
+                    String.class
+            );
 
     private final RedisTemplate<String, String> redisTemplate;
 
@@ -287,6 +351,64 @@ public class AdmissionTokenService {
             }
 
             throw new IllegalStateException("알 수 없는 대기열 처리 결과입니다: " + result);
+        }
+
+        throw new IllegalStateException("입장 토큰 생성에 실패했습니다.");
+    }
+
+    public QueueAdmissionResult getStatusAndIssueTokenIfEligible(
+            Long userId,
+            Long productId,
+            int activeWindow
+    ) {
+        for (int attempt = 0; attempt < 3; attempt++) {
+            String uuid = UUID.randomUUID().toString();
+
+            String result = redisTemplate.execute(
+                    GET_STATUS_AND_ISSUE_TOKEN_SCRIPT,
+                    List.of(
+                            QueueRedisKeys.waiting(productId),
+                            QueueRedisKeys.admissionTrack(productId, userId),
+                            QueueRedisKeys.admissionToken(productId, uuid),
+                            QueueRedisKeys.activity(productId)
+                    ),
+                    String.valueOf(System.currentTimeMillis()),
+                    userId.toString(),
+                    tokenValue(userId, productId),
+                    uuid,
+                    String.valueOf(TOKEN_TTL.toMillis()),
+                    String.valueOf(activeWindow)
+            );
+
+            if (result == null) {
+                throw new IllegalStateException("대기열 상태 조회에 실패했습니다.");
+            }
+
+            if ("NOT_FOUND".equals(result)) {
+                throw new BusinessException(ErrorCode.QUEUE_NOT_FOUND);
+            }
+
+            if ("RETRY".equals(result)) {
+                continue;
+            }
+
+            if (result.startsWith("ADMITTED:")) {
+                return QueueAdmissionResult.admitted(
+                        result.substring("ADMITTED:".length())
+                );
+            }
+
+            if (result.startsWith("WAITING:")) {
+                return QueueAdmissionResult.waiting(
+                        Integer.parseInt(
+                                result.substring("WAITING:".length())
+                        )
+                );
+            }
+
+            throw new IllegalStateException(
+                    "알 수 없는 대기열 처리 결과입니다: " + result
+            );
         }
 
         throw new IllegalStateException("입장 토큰 생성에 실패했습니다.");

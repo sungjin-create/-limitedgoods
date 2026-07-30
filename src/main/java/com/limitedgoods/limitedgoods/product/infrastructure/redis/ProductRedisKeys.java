@@ -13,4 +13,8 @@ public final class ProductRedisKeys {
     public static String soldOut(Long productId) {
         return PREFIX + ":" + productId + ":sold-out";
     }
+
+    public static String queueState(Long productId) {
+        return PREFIX + ":" + productId + ":queue-state";
+    }
 }

@@ -18,6 +18,7 @@ import com.limitedgoods.limitedgoods.product.entity.ProductStatus;
 import com.limitedgoods.limitedgoods.product.entity.ProductType;
 import com.limitedgoods.limitedgoods.product.policy.ProductStatusPolicy;
 import com.limitedgoods.limitedgoods.product.repository.ProductRepository;
+import com.limitedgoods.limitedgoods.queue.service.QueueProductStateCacheService;
 import com.limitedgoods.limitedgoods.user.application.support.UserAccessService;
 import com.limitedgoods.limitedgoods.user.entity.User;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +39,7 @@ public class BackofficeProductService {
     private final ProductStatusPolicy productStatusPolicy;
     private final UserAccessService userAccessService;
     private final ProductHistoryService productHistoryService;
+    private final QueueProductStateCacheService queueProductStateCacheService;
 
     @Transactional
     public ProductListResponse findBackofficeProductList(ProductStatus status) {
@@ -93,6 +95,8 @@ public class BackofficeProductService {
 
         Product saveProduct = productRepository.save(product);
 
+        queueProductStateCacheService.syncAfterCommit(saveProduct);
+
         productHistoryService.recordInitial(saveProduct, changedByUser);
 
         return toResponse(saveProduct);
@@ -134,6 +138,8 @@ public class BackofficeProductService {
         updateProduct.setUpdatedAt(LocalDateTime.now());
         
         ProductSnapshot after = ProductSnapshot.from(updateProduct);
+
+        queueProductStateCacheService.syncAfterCommit(updateProduct);
 
         productHistoryService.recordProductUpdate(
                 updateProduct,
@@ -187,6 +193,8 @@ public class BackofficeProductService {
 
         product.setStock(adjustedStock);
         product.setUpdatedAt(LocalDateTime.now());
+
+        queueProductStateCacheService.syncAfterCommit(product);
 
         productHistoryService.recordStock(
                 product,

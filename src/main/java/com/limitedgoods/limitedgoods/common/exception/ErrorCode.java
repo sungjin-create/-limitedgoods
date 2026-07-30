@@ -256,6 +256,11 @@ public enum ErrorCode {
             "QUEUE_007",
             "한정 상품만 대기열에 입장할 수 있습니다."
     ),
+    QUEUE_STATE_UNAVAILABLE(
+            HttpStatus.SERVICE_UNAVAILABLE,
+            "QUEUE_008",
+            "대기열 상품 상태를 확인할 수 없습니다. 잠시 후 다시 시도해 주세요."
+    ),
 
     EMAIL_DELIVERY_NOT_FOUND(
             HttpStatus.NOT_FOUND,

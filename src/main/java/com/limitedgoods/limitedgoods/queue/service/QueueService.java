@@ -2,11 +2,7 @@ package com.limitedgoods.limitedgoods.queue.service;
 
 import com.limitedgoods.limitedgoods.common.exception.BusinessException;
 import com.limitedgoods.limitedgoods.common.exception.ErrorCode;
-import com.limitedgoods.limitedgoods.product.entity.Product;
-import com.limitedgoods.limitedgoods.product.entity.ProductType;
-import com.limitedgoods.limitedgoods.product.repository.ProductRepository;
 import com.limitedgoods.limitedgoods.queue.dto.QueueAdmissionResult;
-import com.limitedgoods.limitedgoods.product.service.ProductSoldOutCacheService;
 import com.limitedgoods.limitedgoods.queue.dto.QueueStatusResponse;
 import com.limitedgoods.limitedgoods.queue.infrastructure.redis.QueueRedisKeys;
 import lombok.RequiredArgsConstructor;
@@ -14,18 +10,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class QueueService {
 
     private final RedisTemplate<String, String> redisTemplate;
-    private final ProductSoldOutCacheService productSoldOutCacheService;
     private final AdmissionTokenService admissionTokenService;
     private final QueueMaintenanceService queueMaintenanceService;
-    private final ProductRepository productRepository;
+    private final QueueProductStateCacheService queueProductStateCacheService;
 
     private static final int    ACTIVE_WINDOW = 50;
 
@@ -34,7 +27,7 @@ public class QueueService {
      * 이미 등록된 경우 기존 순번 유지
      */
     public QueueStatusResponse enterQueue(Long userId, Long productId) {
-        validateProductForQueue(productId);
+        queueProductStateCacheService.validateEnterable(productId);
 
         queueMaintenanceService.registerActiveProduct(productId);
 
@@ -52,7 +45,16 @@ public class QueueService {
      * 대기 상태 폴링
      */
     public QueueStatusResponse getStatus(Long userId, Long productId) {
-        return enterQueue(userId, productId);
+        queueProductStateCacheService.validateEnterable(productId);
+
+        QueueAdmissionResult result =
+                admissionTokenService.getStatusAndIssueTokenIfEligible(
+                        userId,
+                        productId,
+                        ACTIVE_WINDOW
+                );
+
+        return toResponse(result);
     }
 
     /**
@@ -93,43 +95,6 @@ public class QueueService {
         }
 
         // 이미 제거된 요청도 성공으로 처리해 DELETE를 멱등하게 만든다.
-    }
-
-    private void validateProductForQueue(Long productId) {
-        if (productId == null || productId <= 0) {
-            throw new BusinessException(ErrorCode.INVALID_PRODUCT_ID);
-        }
-
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_PRODUCT_ID));
-
-        if (product.getType() != ProductType.LIMITED) {
-            throw new BusinessException(
-                    ErrorCode.QUEUE_PRODUCT_NOT_SUPPORTED
-            );
-        }
-
-        if (!product.isPurchasableAt(LocalDateTime.now())) {
-            queueMaintenanceService.clearProductQueue(productId);
-            throw new BusinessException(ErrorCode.QUEUE_CLOSED);
-        }
-
-        /*
-         * Redis 캐시가 존재하거나 DB 실제 재고가 0이면 품절이다.
-         *
-         * DB 상품은 판매 상태와 유형 확인을 위해 어차피 조회하므로,
-         * 캐시 미스 여부와 관계없이 실제 재고도 함께 확인하는 편이 안전하다.
-         */
-        boolean cachedSoldOut = productSoldOutCacheService.isSoldOut(productId);
-
-        if (cachedSoldOut || product.getStock() <= 0) {
-            if (!cachedSoldOut) {
-                productSoldOutCacheService.markSoldOut(productId);
-            }
-
-            queueMaintenanceService.clearProductQueue(productId);
-            throw new BusinessException(ErrorCode.QUEUE_SOLD_OUT);
-        }
     }
 
     private QueueStatusResponse toResponse(

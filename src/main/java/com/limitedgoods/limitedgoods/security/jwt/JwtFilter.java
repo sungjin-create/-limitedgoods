@@ -45,28 +45,13 @@ public class JwtFilter extends OncePerRequestFilter {
             Claims claims = jwtUtil.parseClaims(token);
 
             Long userId = claims.get("userId", Long.class);
+            String email = claims.getSubject();
+            String role = claims.get("role", String.class);
 
-            Long tokenVersion = claims.get("ver", Long.class);
-
-            User user = userRepository.findById(userId).orElse(null);
-
-            if (user == null
-                    || user.getStatus() != UserStatus.ACTIVE
-                    || tokenVersion == null
-                    || tokenVersion.longValue() != user.getTokenVersion()) {
-                filterChain.doFilter(request, response);
-                return;
-            }
-
-            CustomUserDetails userDetails =
-                    new CustomUserDetails(
-                            user.getId(),
-                            user.getEmail(),
-                            user.getRole().name()
-                    );
+            CustomUserDetails userDetails = new CustomUserDetails(userId, email, role);
 
             List<GrantedAuthority> authorities = List.of(
-                    new SimpleGrantedAuthority("ROLE_" + user.getRole().name())
+                    new SimpleGrantedAuthority("ROLE_" + role)
             );
 
             UsernamePasswordAuthenticationToken authentication =

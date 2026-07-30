@@ -22,6 +22,7 @@ import com.limitedgoods.limitedgoods.order.repository.OrderRepository;
 import com.limitedgoods.limitedgoods.product.repository.ProductRepository;
 import com.limitedgoods.limitedgoods.product.service.ProductSoldOutCacheService;
 import com.limitedgoods.limitedgoods.queue.service.QueueMaintenanceService;
+import com.limitedgoods.limitedgoods.queue.service.QueueProductStateCacheService;
 import com.limitedgoods.limitedgoods.user.entity.User;
 import com.limitedgoods.limitedgoods.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -51,6 +52,7 @@ public class OrderCreateTransactionService {
     private final OutboxEventWriter outboxEventWriter;
     private final QueueMaintenanceService queueMaintenanceService;
     private final UserPurchaseLimitService userPurchaseLimitService;
+    private final QueueProductStateCacheService queueProductStateCacheService;
 
     @Transactional
     public OrderResponse createOrder(
@@ -139,7 +141,7 @@ public class OrderCreateTransactionService {
 
         soldOutProductIds.forEach(productId -> {
             productSoldOutCacheService.markSoldOutAfterCommit(productId);
-
+            queueProductStateCacheService.markSoldOutAfterCommit(productId);
             queueMaintenanceService.clearProductQueueAfterCommit(productId);
         });
     }
@@ -235,4 +237,5 @@ public class OrderCreateTransactionService {
     private Optional<Order> findByCheckoutToken(Long userId, String checkoutToken) {
         return orderRepository.findByUserIdAndCheckoutToken(userId,checkoutToken);
     }
+
 }
