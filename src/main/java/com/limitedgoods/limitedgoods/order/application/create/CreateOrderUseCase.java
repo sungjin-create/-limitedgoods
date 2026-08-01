@@ -25,10 +25,7 @@ public class CreateOrderUseCase {
     private final OrderMetrics orderMetrics;
 
 
-    public OrderResponse execute(
-            Long userId,
-            OrderRequest request
-    ) {
+    public OrderResponse execute(Long userId, OrderRequest request) {
         Optional<OrderAdmissionClaim> admissionClaim = Optional.empty();
 
         try{

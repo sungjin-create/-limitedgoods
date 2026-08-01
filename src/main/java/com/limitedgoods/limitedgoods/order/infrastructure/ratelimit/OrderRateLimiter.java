@@ -27,12 +27,12 @@ public class OrderRateLimiter {
     private final RedisTemplate<String, String> redisTemplate;
 
     public boolean allow(Long userId, Long productId) {
-        String key = OrderRedisKeys.rateLimit(userId, productId);
+        String rateLimitKey = OrderRedisKeys.rateLimit(userId, productId);
 
         try {
             Long result = redisTemplate.execute(
                     ALLOW_ORDER_REQUEST_SCRIPT,
-                    List.of(key),
+                    List.of(rateLimitKey),
                     String.valueOf(WINDOW_SECONDS),
                     String.valueOf(MAX_REQUESTS)
             );
