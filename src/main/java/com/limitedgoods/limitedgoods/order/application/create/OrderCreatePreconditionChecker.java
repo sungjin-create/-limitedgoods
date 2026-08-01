@@ -55,20 +55,14 @@ public class OrderCreatePreconditionChecker {
     /**
      * 신규 주문에만 필요한 외부 상태 및 상품 정책 검증
      */
-    public OrderProductValidationResult checkNewOrder(
-            Long userId,
-            OrderRequest request
-    ) {
+    public OrderProductValidationResult checkNewOrder(Long userId, OrderRequest request) {
         validateRateLimit(userId, request);
         validateSoldOutCache(request);
 
         return productOrderPolicy.validate(request.items());
     }
 
-    private void validateRateLimit(
-            Long userId,
-            OrderRequest request
-    ) {
+    private void validateRateLimit(Long userId, OrderRequest request) {
         for (OrderItemRequest item : request.items()) {
             boolean allowed = orderRateLimiter.allow(userId, item.productId());
 

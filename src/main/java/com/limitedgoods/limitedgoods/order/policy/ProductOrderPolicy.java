@@ -24,9 +24,7 @@ public class ProductOrderPolicy {
     private final ProductRepository productRepository;
 
     @Transactional(readOnly = true)
-    public OrderProductValidationResult validate(
-            List<OrderItemRequest> items
-    ) {
+    public OrderProductValidationResult validate(List<OrderItemRequest> items) {
         Map<Long, Product> productMap = loadProductMap(items);
 
         LocalDateTime now = LocalDateTime.now();
@@ -38,10 +36,7 @@ public class ProductOrderPolicy {
 
         Long limitedProductId = productMap.values()
                 .stream()
-                .filter(product ->
-                        product.getType()
-                                == ProductType.LIMITED
-                )
+                .filter(product -> product.getType() == ProductType.LIMITED)
                 .map(Product::getId)
                 .findFirst()
                 .orElse(null);

@@ -20,7 +20,7 @@ public class QueueProductStateCacheService {
 
     private final RedisTemplate<String, String> redisTemplate;
 
-    public void validateEnterable(Long productId) {
+    public void validateQueueEntryAllowed(Long productId) {
         if (productId == null || productId <= 0) {
             throw new BusinessException(ErrorCode.INVALID_PRODUCT_ID);
         }

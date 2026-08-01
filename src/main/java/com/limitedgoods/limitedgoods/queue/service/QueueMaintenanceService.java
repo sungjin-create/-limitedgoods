@@ -3,6 +3,7 @@ package com.limitedgoods.limitedgoods.queue.service;
 import com.limitedgoods.limitedgoods.queue.infrastructure.redis.QueueRedisKeys;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -23,101 +24,24 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class QueueMaintenanceService {
 
-    private static final Duration STALE_TIMEOUT =
-            Duration.ofSeconds(30);
+    private static final Duration STALE_TIMEOUT = Duration.ofSeconds(30);
 
     private static final int CLEANUP_BATCH_SIZE = 200;
 
-    /*
-     * 명시적 대기열 이탈.
-     *
-     * 반환값:
-     * 0: 대기열에 없음
-     * 1: 정상 삭제
-     * 2: 주문 생성에서 admission token을 사용 중
-     */
     private static final RedisScript<Long> LEAVE_SCRIPT = RedisScript.of(
-            """
-            local trackedToken = redis.call('GET', KEYS[3])
-    
-            if trackedToken then
-                local tokenKey = ARGV[2] .. trackedToken
-    
-                local tokenValue = redis.call('GET', tokenKey)
-    
-                if tokenValue
-                    and string.sub(tokenValue, 1, 11 ) == 'PROCESSING|' then
-                    return 2
-                end
-    
-                redis.call('DEL', tokenKey)
-                redis.call('DEL', KEYS[3])
-            end
-    
-            local waitingRemoved = redis.call('ZREM', KEYS[1], ARGV[1])
-    
-            redis.call('ZREM', KEYS[2], ARGV[1])
-    
-            return waitingRemoved
-            """,
+            new ClassPathResource("redis/queue/maintenance/leave-queue.lua"),
             Long.class
-        );
+    );
 
-    /*
-     * 후보 조회와 실제 삭제 사이에 heartbeat가 들어오는 경쟁 조건을
-     * 방지하기 위해 Lua 안에서 activity 점수를 다시 확인한다.
-     */
     private static final RedisScript<Long> REMOVE_IF_STALE_SCRIPT = RedisScript.of(
-            """
-            local lastActivity = redis.call('ZSCORE', KEYS[2], ARGV[1])
-
-            if not lastActivity then
-                redis.call('ZREM', KEYS[1], ARGV[1])
-                return 1
-            end
-
-            if tonumber(lastActivity) > tonumber(ARGV[2]) then
-                return 0
-            end
-
-            local trackedToken = redis.call('GET', KEYS[3])
-
-            if trackedToken then
-                local tokenKey = ARGV[3] .. trackedToken
-
-                local tokenValue = redis.call('GET', tokenKey)
-
-                if tokenValue and string.sub(tokenValue, 1, 11) == 'PROCESSING|' then
-                    return 2
-                end
-
-                redis.call('DEL', tokenKey)
-                redis.call('DEL', KEYS[3])
-            end
-
-            redis.call('ZREM', KEYS[1], ARGV[1])
-
-            redis.call('ZREM', KEYS[2], ARGV[1])
-
-            return 1
-            """,
+            new ClassPathResource("redis/queue/maintenance/remove-stale-queue-member.lua"),
             Long.class
-        );
+    );
 
     private static final RedisScript<Long> HEARTBEAT_SCRIPT = RedisScript.of(
-            """
-            local score = redis.call('ZSCORE', KEYS[1], ARGV[1])
-
-            if not score then
-                return 0
-            end
-
-            redis.call('ZADD', KEYS[2], ARGV[2], ARGV[1])
-
-            return 1
-            """,
+            new ClassPathResource("redis/queue/maintenance/heartbeat.lua"),
             Long.class
-        );
+    );
 
     private final RedisTemplate<String, String> redisTemplate;
 
@@ -135,7 +59,7 @@ public class QueueMaintenanceService {
         return Long.valueOf(1).equals(result);
     }
 
-    public LeaveResult leave(Long userId, Long productId) {
+    public LeaveResult leaveQueue(Long userId, Long productId) {
         Long result = redisTemplate.execute(
                 LEAVE_SCRIPT,
                 List.of(
@@ -158,7 +82,7 @@ public class QueueMaintenanceService {
                 : LeaveResult.NOT_FOUND;
     }
 
-    public int removeStaleUsers(Long productId) {
+    public int removeStaleQueueMembers(Long productId) {
         long cutoff = System.currentTimeMillis() - STALE_TIMEOUT.toMillis();
 
         Set<String> candidates =

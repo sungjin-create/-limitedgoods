@@ -21,14 +21,14 @@ public class OrderAdmissionCoordinator {
     private final QueueService queueService;
     private final QueueAdmissionProperties admissionProperties;
 
-    public Optional<OrderAdmissionClaim> claimIfRequired(
+    public Optional<OrderAdmissionClaim> claimAdmissionIfRequired(
             String admissionToken,
             Long userId,
-            Long admissionProductId,
+            Long admissionRequiredProductId,
             String checkoutToken,
             String requestFingerprint
     ) {
-        if (admissionProductId == null || admissionProperties.isBypassEnabled()) {
+        if (admissionRequiredProductId == null || admissionProperties.isBypassEnabled()) {
             return Optional.empty();
         }
 
@@ -38,7 +38,7 @@ public class OrderAdmissionCoordinator {
 
         String claimId = createClaimId(checkoutToken, requestFingerprint);
 
-        Long generation = admissionTokenService.claim(admissionToken, userId, admissionProductId, claimId);
+        Long generation = admissionTokenService.claimToken(admissionToken, userId, admissionRequiredProductId, claimId);
 
         if (generation == null) {
             throw new BusinessException(ErrorCode.ADMISSION_TOKEN_INVALID);
@@ -48,25 +48,25 @@ public class OrderAdmissionCoordinator {
                 new OrderAdmissionClaim(
                         admissionToken,
                         userId,
-                        admissionProductId,
+                        admissionRequiredProductId,
                         claimId,
                         generation
                 )
         );
     }
 
-    public void releaseAfterBusinessFailure(Optional<OrderAdmissionClaim> claim) {
-        claim.ifPresent(this::releaseBestEffort);
+    public void releaseClaimAfterBusinessFailure(Optional<OrderAdmissionClaim> claim) {
+        claim.ifPresent(this::releaseClaimBestEffort);
     }
 
-    public void completeAfterOrderCreated(Optional<OrderAdmissionClaim> claim) {
-        claim.ifPresent(this::completeBestEffort);
+    public void completeClaimAfterOrderCreated(Optional<OrderAdmissionClaim> claim) {
+        claim.ifPresent(this::completeClaimBestEffort);
     }
 
     /**
      * 시스템 오류인 경우 PROCESSING 상태를 유지한다.
      */
-    public void retainAfterUnknownFailure(
+    public void retainClaimAfterUnknownFailure(
             Optional<OrderAdmissionClaim> claim,
             Throwable throwable
     ) {
@@ -91,7 +91,7 @@ public class OrderAdmissionCoordinator {
                 + requestFingerprint;
     }
 
-    private void releaseBestEffort(OrderAdmissionClaim claim) {
+    private void releaseClaimBestEffort(OrderAdmissionClaim claim) {
         try {
             boolean released =
                     admissionTokenService.releaseClaim(
@@ -119,7 +119,7 @@ public class OrderAdmissionCoordinator {
         }
     }
 
-    private void completeBestEffort(OrderAdmissionClaim claim) {
+    private void completeClaimBestEffort(OrderAdmissionClaim claim) {
         try {
             queueService.removeFromQueue(claim.userId(),claim.productId());
         } catch (Exception exception) {
@@ -137,7 +137,7 @@ public class OrderAdmissionCoordinator {
 
         try {
             boolean consumed =
-                    admissionTokenService.completeConsumption(
+                    admissionTokenService.completeTokenConsumption(
                             claim.admissionToken(),
                             claim.userId(),
                             claim.productId(),

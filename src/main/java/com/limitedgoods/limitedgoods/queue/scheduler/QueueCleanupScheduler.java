@@ -52,11 +52,11 @@ public class QueueCleanupScheduler {
                 }
 
                 if(product.getStock() <= 0) {
-                    queueAvailabilityRedisService.invalidateIfSoldOut(productId);
+                    queueAvailabilityRedisService.invalidateQueueIfSoldOut(productId);
                     continue;
                 }
 
-                int removed = queueMaintenanceService.removeStaleUsers(productId);
+                int removed = queueMaintenanceService.removeStaleQueueMembers(productId);
 
                 if (removed > 0) {
                     log.info(

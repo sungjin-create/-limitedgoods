@@ -52,7 +52,7 @@ public class CreateOrderUseCase {
             OrderProductValidationResult validationResult = preconditionChecker.checkNewOrder(userId, request);
 
             admissionClaim =
-                    admissionCoordinator.claimIfRequired(
+                    admissionCoordinator.claimAdmissionIfRequired(
                             request.admissionToken(),
                             userId,
                             validationResult.admissionProductId(),
@@ -70,21 +70,21 @@ public class CreateOrderUseCase {
                             requestFingerprint
                     );
 
-            admissionCoordinator.completeAfterOrderCreated(admissionClaim);
+            admissionCoordinator.completeClaimAfterOrderCreated(admissionClaim);
 
             return order;
 
         } catch (BusinessException exception) {
             orderMetrics.recordOrderCreate("failure", exception.getErrorCode().getCode());
 
-            admissionCoordinator.releaseAfterBusinessFailure(admissionClaim);
+            admissionCoordinator.releaseClaimAfterBusinessFailure(admissionClaim);
 
             throw exception;
 
         } catch (RuntimeException exception) {
             orderMetrics.recordOrderCreate("failure", "internal_error");
 
-            admissionCoordinator.retainAfterUnknownFailure(admissionClaim, exception);
+            admissionCoordinator.retainClaimAfterUnknownFailure(admissionClaim, exception);
 
             throw exception;
         }

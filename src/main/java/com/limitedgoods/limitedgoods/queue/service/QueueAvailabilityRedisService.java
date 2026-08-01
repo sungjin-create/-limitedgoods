@@ -4,6 +4,7 @@ import com.limitedgoods.limitedgoods.product.infrastructure.redis.ProductRedisKe
 import com.limitedgoods.limitedgoods.queue.infrastructure.redis.QueueRedisKeys;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Service;
@@ -20,67 +21,28 @@ public class QueueAvailabilityRedisService {
 
     private static final Duration SOLD_OUT_TTL = Duration.ofMinutes(1000);
 
-    /*
-     * 1. sold-out 키 등록
-     * 2. queue generation 증가
-     * 3. waiting/activity 삭제
-     *
-     * 기존 admission token은 generation 불일치로 즉시 무효화되고,
-     * 실제 키는 TTL에 의해 제거된다.
-     */
     private static final RedisScript<Long> MARK_SOLD_OUT_AND_INVALIDATE_QUEUE_SCRIPT = RedisScript.of(
-        """
-        redis.call('SET', KEYS[1], 'true', 'PX', ARGV[1])
-    
-        local generation = redis.call('INCR', KEYS[2])
-    
-        redis.call('DEL', KEYS[3])
-        redis.call('DEL', KEYS[4])
-    
-        return generation
-        """,
-        Long.class
+            new ClassPathResource(
+                    "redis/queue/availability/mark-sold-out-and-invalidate-queue.lua"
+            ),
+            Long.class
     );
 
-    /*
-     * sold-out 키가 현재 존재하는 경우에만 대기열을 무효화한다.
-     *
-     * 환불이 먼저 sold-out 키를 삭제했다면 아무 작업도 하지 않는다.
-     */
     private static final RedisScript<Long> INVALIDATE_IF_SOLD_OUT_SCRIPT = RedisScript.of(
-        """
-        if redis.call('EXISTS', KEYS[1]) == 0 then
-            return 0
-        end
-
-        redis.call('INCR', KEYS[2])
-        redis.call('DEL', KEYS[3])
-        redis.call('DEL', KEYS[4])
-
-        return 1
-        """,
-        Long.class
+            new ClassPathResource(
+                    "redis/queue/availability/invalidate-queue-if-sold-out.lua"
+            ),
+            Long.class
     );
 
-    /*
-     * 판매 종료, 상품 삭제, 판매 중지 등의 경우에는
-     * sold-out 상태와 관계없이 대기열을 무효화한다.
-     */
     private static final RedisScript<Long> INVALIDATE_QUEUE_SCRIPT = RedisScript.of(
-        """
-        local generation = redis.call('INCR', KEYS[1])
-
-        redis.call('DEL', KEYS[2])
-        redis.call('DEL', KEYS[3])
-
-        return generation
-        """,
-        Long.class
+            new ClassPathResource("redis/queue/availability/invalidate-queue.lua"),
+            Long.class
     );
 
     private final RedisTemplate<String, String> redisTemplate;
 
-    public void markSoldOutAndInvalidate(Long productId) {
+    public void markSoldOutAndInvalidateQueue(Long productId) {
         redisTemplate.execute(
                 MARK_SOLD_OUT_AND_INVALIDATE_QUEUE_SCRIPT,
                 List.of(
@@ -98,13 +60,13 @@ public class QueueAvailabilityRedisService {
     }
 
     public void markSoldOutAndInvalidateAfterCommit(Long productId) {
-        executeAfterCommit(() -> markSoldOutAndInvalidate(productId));
+        executeAfterCommit(() -> markSoldOutAndInvalidateQueue(productId));
     }
 
     /**
      * @return sold-out 키가 존재하여 실제로 무효화했으면 true
      */
-    public boolean invalidateIfSoldOut(Long productId) {
+    public boolean invalidateQueueIfSoldOut(Long productId) {
         Long result = redisTemplate.execute(
                 INVALIDATE_IF_SOLD_OUT_SCRIPT,
                 List.of(

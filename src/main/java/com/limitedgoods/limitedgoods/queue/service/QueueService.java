@@ -29,7 +29,7 @@ public class QueueService {
      * 이미 등록된 경우 기존 순번 유지
      */
     public QueueStatusResponse enterQueue(Long userId, Long productId) {
-        queueProductStateCacheService.validateEnterable(productId);
+        queueProductStateCacheService.validateQueueEntryAllowed(productId);
 
         QueueAdmissionResult result =
                 admissionTokenService.enterQueueAndIssueToken(
@@ -45,7 +45,7 @@ public class QueueService {
      * 대기 상태 폴링
      */
     public QueueStatusResponse getStatus(Long userId, Long productId) {
-        queueProductStateCacheService.validateEnterable(productId);
+        queueProductStateCacheService.validateQueueEntryAllowed(productId);
 
         QueueAdmissionResult result =
                 admissionTokenService.getStatusAndIssueTokenIfEligible(
@@ -88,7 +88,7 @@ public class QueueService {
     }
 
     public void leaveQueue(Long userId, Long productId) {
-        LeaveResult result = queueMaintenanceService.leave(userId, productId);
+        LeaveResult result = queueMaintenanceService.leaveQueue(userId, productId);
 
         if (result == LeaveResult.PROCESSING) {
             throw new BusinessException(ErrorCode.QUEUE_LEAVE_NOT_ALLOWED);
