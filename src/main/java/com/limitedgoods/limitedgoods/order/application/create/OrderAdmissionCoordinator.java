@@ -3,6 +3,7 @@ package com.limitedgoods.limitedgoods.order.application.create;
 import com.limitedgoods.limitedgoods.common.exception.BusinessException;
 import com.limitedgoods.limitedgoods.common.exception.ErrorCode;
 import com.limitedgoods.limitedgoods.order.application.create.dto.OrderAdmissionClaim;
+import com.limitedgoods.limitedgoods.queue.config.QueueAdmissionProperties;
 import com.limitedgoods.limitedgoods.queue.service.AdmissionTokenService;
 import com.limitedgoods.limitedgoods.queue.service.QueueService;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,7 @@ public class OrderAdmissionCoordinator {
 
     private final AdmissionTokenService admissionTokenService;
     private final QueueService queueService;
+    private final QueueAdmissionProperties admissionProperties;
 
     public Optional<OrderAdmissionClaim> claimIfRequired(
             String admissionToken,
@@ -26,7 +28,7 @@ public class OrderAdmissionCoordinator {
             String checkoutToken,
             String requestFingerprint
     ) {
-        if (admissionProductId == null) {
+        if (admissionProductId == null || admissionProperties.isBypassEnabled()) {
             return Optional.empty();
         }
 
@@ -36,14 +38,9 @@ public class OrderAdmissionCoordinator {
 
         String claimId = createClaimId(checkoutToken, requestFingerprint);
 
-        boolean claimed = admissionTokenService.claim(
-                admissionToken,
-                userId,
-                admissionProductId,
-                claimId
-        );
+        Long generation = admissionTokenService.claim(admissionToken, userId, admissionProductId, claimId);
 
-        if (!claimed) {
+        if (generation == null) {
             throw new BusinessException(ErrorCode.ADMISSION_TOKEN_INVALID);
         }
 
@@ -52,7 +49,8 @@ public class OrderAdmissionCoordinator {
                         admissionToken,
                         userId,
                         admissionProductId,
-                        claimId
+                        claimId,
+                        generation
                 )
         );
     }
@@ -100,7 +98,8 @@ public class OrderAdmissionCoordinator {
                             claim.admissionToken(),
                             claim.userId(),
                             claim.productId(),
-                            claim.claimId()
+                            claim.claimId(),
+                            claim.generation()
                     );
 
             if (!released) {
@@ -142,7 +141,8 @@ public class OrderAdmissionCoordinator {
                             claim.admissionToken(),
                             claim.userId(),
                             claim.productId(),
-                            claim.claimId()
+                            claim.claimId(),
+                            claim.generation()
                     );
 
             if (!consumed) {

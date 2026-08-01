@@ -15,7 +15,6 @@ import java.time.Duration;
 @RequiredArgsConstructor
 public class ProductSoldOutCacheService {
 
-    private static final String KEY_PREFIX = "soldout:product:";
     private static final Duration SOLD_OUT_TTL = Duration.ofMinutes(10);
 
     private final RedisTemplate<String, String> redisTemplate;

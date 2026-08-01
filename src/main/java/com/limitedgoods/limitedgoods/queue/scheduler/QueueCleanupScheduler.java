@@ -3,6 +3,7 @@ package com.limitedgoods.limitedgoods.queue.scheduler;
 import com.limitedgoods.limitedgoods.product.entity.Product;
 import com.limitedgoods.limitedgoods.product.entity.ProductType;
 import com.limitedgoods.limitedgoods.product.repository.ProductRepository;
+import com.limitedgoods.limitedgoods.queue.service.QueueAvailabilityRedisService;
 import com.limitedgoods.limitedgoods.queue.service.QueueMaintenanceService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +20,7 @@ public class QueueCleanupScheduler {
 
     private final QueueMaintenanceService queueMaintenanceService;
     private final ProductRepository productRepository;
+    private final QueueAvailabilityRedisService queueAvailabilityRedisService;
 
     @Scheduled(fixedDelayString = "${queue.cleanup.delay-ms:10000}")
     public void cleanupQueues() {
@@ -44,9 +46,13 @@ public class QueueCleanupScheduler {
                  */
                 if (product == null
                         || product.getType() != ProductType.LIMITED
-                        || product.getStock() <= 0
                         || !product.isPurchasableAt(now)) {
-                    queueMaintenanceService.clearProductQueue(productId);
+                    queueAvailabilityRedisService.invalidateQueue(productId);
+                    continue;
+                }
+
+                if(product.getStock() <= 0) {
+                    queueAvailabilityRedisService.invalidateIfSoldOut(productId);
                     continue;
                 }
 

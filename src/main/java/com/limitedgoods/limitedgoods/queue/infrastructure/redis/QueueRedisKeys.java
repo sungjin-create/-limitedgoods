@@ -70,4 +70,8 @@ public final class QueueRedisKeys {
         return PREFIX + ":{" + productId + "}:admission:*";
     }
 
+    public static String generation(Long productId) {
+        return PREFIX + ":{" + productId + "}:generation";
+    }
+
 }

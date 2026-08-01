@@ -51,8 +51,6 @@ public class QueueProductStateCacheService {
             case OPEN -> {
                 return;
             }
-            case SOLD_OUT ->
-                    throw new BusinessException(ErrorCode.QUEUE_SOLD_OUT);
             case CLOSED ->
                     throw new BusinessException(ErrorCode.QUEUE_CLOSED);
             case UNSUPPORTED ->
@@ -81,31 +79,9 @@ public class QueueProductStateCacheService {
         );
     }
 
-    public void markSoldOutAfterCommit(Long productId) {
-        executeAfterCommit(() ->
-                redisTemplate.opsForValue().set(
-                        ProductRedisKeys.queueState(productId),
-                        QueueProductState.SOLD_OUT.name()
-                )
-        );
-    }
-
-    public void markOpenAfterCommit(Long productId) {
-        executeAfterCommit(() ->
-                redisTemplate.opsForValue().set(
-                        ProductRedisKeys.queueState(productId),
-                        QueueProductState.OPEN.name()
-                )
-        );
-    }
-
     private QueueProductState calculateState(Product product) {
         if (product.getType() != ProductType.LIMITED) {
             return QueueProductState.UNSUPPORTED;
-        }
-
-        if (product.getStock() <= 0) {
-            return QueueProductState.SOLD_OUT;
         }
 
         if (product.isPurchasableAt(LocalDateTime.now())) {

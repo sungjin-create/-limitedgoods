@@ -80,8 +80,7 @@ public class OrderCreatePreconditionChecker {
 
     private void validateSoldOutCache(OrderRequest request) {
         for (OrderItemRequest item : request.items()) {
-            boolean soldOut =
-                    productSoldOutCacheService.isSoldOut(item.productId());
+            boolean soldOut = productSoldOutCacheService.isSoldOut(item.productId());
 
             if (soldOut) {
                 throw new BusinessException(ErrorCode.INSUFFICIENT_STOCK);

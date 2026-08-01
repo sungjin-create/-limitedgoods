@@ -32,10 +32,7 @@ public class QueueController {
             @Valid @RequestBody QueueEnterRequest request,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        QueueStatusResponse response = queueService.enterQueue(
-                userDetails.getUserId(),
-                request.productId()
-        );
+        QueueStatusResponse response = queueService.enterQueue(userDetails.getUserId(), request.productId());
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -52,10 +49,7 @@ public class QueueController {
             @AuthenticationPrincipal
             CustomUserDetails userDetails
     ) {
-        QueueStatusResponse response = queueService.getStatus(
-                userDetails.getUserId(),
-                productId
-        );
+        QueueStatusResponse response = queueService.getStatus(userDetails.getUserId(), productId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

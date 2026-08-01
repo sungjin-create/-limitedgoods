@@ -15,7 +15,7 @@ public class QueueAdmissionProperties {
     private boolean bypassEnabled = false;
 
     @Min(1)
-    private int activeWindow = 50;
+    private int activeWindow = 40;
 
     public boolean isBypassEnabled() {
         return bypassEnabled;

@@ -36,143 +36,88 @@ public class QueueMaintenanceService {
      * 1: 정상 삭제
      * 2: 주문 생성에서 admission token을 사용 중
      */
-    private static final RedisScript<Long> LEAVE_SCRIPT =
-            RedisScript.of(
-                    """
-                    local trackedToken =
-                        redis.call('GET', KEYS[3])
-
-                    if trackedToken then
-                        local tokenKey =
-                            ARGV[2] .. trackedToken
-
-                        local tokenValue =
-                            redis.call('GET', tokenKey)
-
-                        if tokenValue
-                           and string.sub(
-                               tokenValue,
-                               1,
-                               11
-                           ) == 'PROCESSING:' then
-                            return 2
-                        end
-
-                        redis.call('DEL', tokenKey)
-                        redis.call('DEL', KEYS[3])
-                    end
-
-                    local waitingRemoved =
-                        redis.call(
-                            'ZREM',
-                            KEYS[1],
-                            ARGV[1]
-                        )
-
-                    redis.call(
-                        'ZREM',
-                        KEYS[2],
-                        ARGV[1]
-                    )
-
-                    return waitingRemoved
-                    """,
-                    Long.class
-            );
+    private static final RedisScript<Long> LEAVE_SCRIPT = RedisScript.of(
+            """
+            local trackedToken = redis.call('GET', KEYS[3])
+    
+            if trackedToken then
+                local tokenKey = ARGV[2] .. trackedToken
+    
+                local tokenValue = redis.call('GET', tokenKey)
+    
+                if tokenValue
+                    and string.sub(tokenValue, 1, 11 ) == 'PROCESSING|' then
+                    return 2
+                end
+    
+                redis.call('DEL', tokenKey)
+                redis.call('DEL', KEYS[3])
+            end
+    
+            local waitingRemoved = redis.call('ZREM', KEYS[1], ARGV[1])
+    
+            redis.call('ZREM', KEYS[2], ARGV[1])
+    
+            return waitingRemoved
+            """,
+            Long.class
+        );
 
     /*
      * 후보 조회와 실제 삭제 사이에 heartbeat가 들어오는 경쟁 조건을
      * 방지하기 위해 Lua 안에서 activity 점수를 다시 확인한다.
      */
-    private static final RedisScript<Long>
-            REMOVE_IF_STALE_SCRIPT =
-            RedisScript.of(
-                    """
-                    local lastActivity =
-                        redis.call(
-                            'ZSCORE',
-                            KEYS[2],
-                            ARGV[1]
-                        )
+    private static final RedisScript<Long> REMOVE_IF_STALE_SCRIPT = RedisScript.of(
+            """
+            local lastActivity = redis.call('ZSCORE', KEYS[2], ARGV[1])
 
-                    if not lastActivity then
-                        redis.call(
-                            'ZREM',
-                            KEYS[1],
-                            ARGV[1]
-                        )
-                        return 1
-                    end
+            if not lastActivity then
+                redis.call('ZREM', KEYS[1], ARGV[1])
+                return 1
+            end
 
-                    if tonumber(lastActivity)
-                       > tonumber(ARGV[2]) then
-                        return 0
-                    end
+            if tonumber(lastActivity) > tonumber(ARGV[2]) then
+                return 0
+            end
 
-                    local trackedToken =
-                        redis.call('GET', KEYS[3])
+            local trackedToken = redis.call('GET', KEYS[3])
 
-                    if trackedToken then
-                        local tokenKey =
-                            ARGV[3] .. trackedToken
+            if trackedToken then
+                local tokenKey = ARGV[3] .. trackedToken
 
-                        local tokenValue =
-                            redis.call('GET', tokenKey)
+                local tokenValue = redis.call('GET', tokenKey)
 
-                        if tokenValue
-                           and string.sub(
-                               tokenValue,
-                               1,
-                               11
-                           ) == 'PROCESSING:' then
-                            return 2
-                        end
+                if tokenValue and string.sub(tokenValue, 1, 11) == 'PROCESSING|' then
+                    return 2
+                end
 
-                        redis.call('DEL', tokenKey)
-                        redis.call('DEL', KEYS[3])
-                    end
+                redis.call('DEL', tokenKey)
+                redis.call('DEL', KEYS[3])
+            end
 
-                    redis.call(
-                        'ZREM',
-                        KEYS[1],
-                        ARGV[1]
-                    )
+            redis.call('ZREM', KEYS[1], ARGV[1])
 
-                    redis.call(
-                        'ZREM',
-                        KEYS[2],
-                        ARGV[1]
-                    )
+            redis.call('ZREM', KEYS[2], ARGV[1])
 
-                    return 1
-                    """,
-                    Long.class
-            );
+            return 1
+            """,
+            Long.class
+        );
 
-    private static final RedisScript<Long> HEARTBEAT_SCRIPT =
-            RedisScript.of(
-                    """
-                    local score = redis.call(
-                        'ZSCORE',
-                        KEYS[1],
-                        ARGV[1]
-                    )
+    private static final RedisScript<Long> HEARTBEAT_SCRIPT = RedisScript.of(
+            """
+            local score = redis.call('ZSCORE', KEYS[1], ARGV[1])
 
-                    if not score then
-                        return 0
-                    end
+            if not score then
+                return 0
+            end
 
-                    redis.call(
-                        'ZADD',
-                        KEYS[2],
-                        ARGV[2],
-                        ARGV[1]
-                    )
+            redis.call('ZADD', KEYS[2], ARGV[2], ARGV[1])
 
-                    return 1
-                    """,
-                    Long.class
-            );
+            return 1
+            """,
+            Long.class
+        );
 
     private final RedisTemplate<String, String> redisTemplate;
 
@@ -196,15 +141,10 @@ public class QueueMaintenanceService {
                 List.of(
                         QueueRedisKeys.waiting(productId),
                         QueueRedisKeys.activity(productId),
-                        QueueRedisKeys.admissionTrack(
-                                productId,
-                                userId
-                        )
+                        QueueRedisKeys.admissionTrack(productId, userId)
                 ),
                 userId.toString(),
-                QueueRedisKeys.admissionTokenPrefix(
-                        productId
-                )
+                QueueRedisKeys.admissionTokenPrefix(productId)
         );
 
         if (Long.valueOf(2).equals(result)) {
@@ -264,15 +204,9 @@ public class QueueMaintenanceService {
         return removed;
     }
 
-    public void registerActiveProduct(Long productId) {
-        redisTemplate.opsForSet().add(
-                QueueRedisKeys.activeProducts(),
-                productId.toString()
-        );
-    }
-
     public Set<String> findActiveProductIds() {
-        Set<String> productIds = redisTemplate.opsForSet().members(QueueRedisKeys.activeProducts());
+        Set<String> productIds = redisTemplate.opsForSet().members(
+                QueueRedisKeys.activeProducts());
 
         return productIds == null ? Set.of() : productIds;
     }

@@ -15,6 +15,10 @@ public class QueueProductStateWarmup {
     private final ProductRepository productRepository;
     private final QueueProductStateCacheService queueProductStateCacheService;
 
+    /*
+     * 대기열은 LIMITED 상품만 적용
+     * 어플리케이션이 시작될때, Redis 대기열을 위해 등록
+     */
     @EventListener(ApplicationReadyEvent.class)
     @Transactional(readOnly = true)
     public void warmup() {

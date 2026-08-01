@@ -2,6 +2,7 @@ package com.limitedgoods.limitedgoods.queue.service;
 
 import com.limitedgoods.limitedgoods.common.exception.BusinessException;
 import com.limitedgoods.limitedgoods.common.exception.ErrorCode;
+import com.limitedgoods.limitedgoods.product.service.ProductSoldOutCacheService;
 import com.limitedgoods.limitedgoods.queue.config.QueueAdmissionProperties;
 import com.limitedgoods.limitedgoods.queue.dto.QueueAdmissionResult;
 import com.limitedgoods.limitedgoods.queue.dto.QueueStatusResponse;
@@ -21,6 +22,7 @@ public class QueueService {
     private final QueueMaintenanceService queueMaintenanceService;
     private final QueueProductStateCacheService queueProductStateCacheService;
     private final QueueAdmissionProperties admissionProperties;
+    private final ProductSoldOutCacheService productSoldOutCacheService;
 
     /**
      * 대기열 진입
@@ -28,8 +30,6 @@ public class QueueService {
      */
     public QueueStatusResponse enterQueue(Long userId, Long productId) {
         queueProductStateCacheService.validateEnterable(productId);
-
-        queueMaintenanceService.registerActiveProduct(productId);
 
         QueueAdmissionResult result =
                 admissionTokenService.enterQueueAndIssueToken(

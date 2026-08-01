@@ -49,8 +49,7 @@ public class CreateOrderUseCase {
                 return existing;
             }
 
-            OrderProductValidationResult validationResult =
-                    preconditionChecker.checkNewOrder(userId, request);
+            OrderProductValidationResult validationResult = preconditionChecker.checkNewOrder(userId, request);
 
             admissionClaim =
                     admissionCoordinator.claimIfRequired(

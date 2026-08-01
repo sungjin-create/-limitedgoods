@@ -21,8 +21,7 @@ import com.limitedgoods.limitedgoods.order.repository.OrderItemRepository;
 import com.limitedgoods.limitedgoods.order.repository.OrderRepository;
 import com.limitedgoods.limitedgoods.product.repository.ProductRepository;
 import com.limitedgoods.limitedgoods.product.service.ProductSoldOutCacheService;
-import com.limitedgoods.limitedgoods.queue.service.QueueMaintenanceService;
-import com.limitedgoods.limitedgoods.queue.service.QueueProductStateCacheService;
+import com.limitedgoods.limitedgoods.queue.service.QueueAvailabilityRedisService;
 import com.limitedgoods.limitedgoods.user.entity.User;
 import com.limitedgoods.limitedgoods.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -50,9 +49,8 @@ public class OrderCreateTransactionService {
     private final OrderStatusHistoryService historyService;
     private final ApplicationEventPublisher eventPublisher;
     private final OutboxEventWriter outboxEventWriter;
-    private final QueueMaintenanceService queueMaintenanceService;
     private final UserPurchaseLimitService userPurchaseLimitService;
-    private final QueueProductStateCacheService queueProductStateCacheService;
+    private final QueueAvailabilityRedisService queueAvailabilityRedisService;
 
     @Transactional
     public OrderResponse createOrder(
@@ -78,7 +76,7 @@ public class OrderCreateTransactionService {
 
         userPurchaseLimitService.reserve(userId, reservation.orderItems());
 
-        registerSoldOutCacheAfterCommit(reservation.productIds());
+        handleSoldOutProductsAfterCommit(reservation.productIds());
 
         Order savedOrder = saveOrder(
                 user,
@@ -136,14 +134,10 @@ public class OrderCreateTransactionService {
                 .orElse(null);
     }
 
-    private void registerSoldOutCacheAfterCommit(Set<Long> productIds) {
+    private void handleSoldOutProductsAfterCommit(Set<Long> productIds) {
         List<Long> soldOutProductIds = productRepository.findSoldOutProductIds(productIds);
 
-        soldOutProductIds.forEach(productId -> {
-            productSoldOutCacheService.markSoldOutAfterCommit(productId);
-            queueProductStateCacheService.markSoldOutAfterCommit(productId);
-            queueMaintenanceService.clearProductQueueAfterCommit(productId);
-        });
+        soldOutProductIds.forEach(queueAvailabilityRedisService::markSoldOutAndInvalidateAfterCommit);
     }
 
     private Order saveOrder(

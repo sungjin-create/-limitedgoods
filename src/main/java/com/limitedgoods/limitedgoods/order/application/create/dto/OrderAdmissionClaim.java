@@ -4,6 +4,7 @@ public record OrderAdmissionClaim(
         String admissionToken,
         Long userId,
         Long productId,
-        String claimId
+        String claimId,
+        long generation
 ) {
 }
