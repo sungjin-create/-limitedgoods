@@ -3,6 +3,7 @@ package com.limitedgoods.limitedgoods.order.infrastructure.ratelimit;
 import com.limitedgoods.limitedgoods.order.infrastructure.redis.OrderRedisKeys;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Service;
@@ -17,22 +18,11 @@ public class OrderRateLimiter {
     private static final int MAX_REQUESTS = 3;
     private static final long WINDOW_SECONDS = 10;
 
-    private static final String RATE_LIMIT_SCRIPT = """
-            local count = redis.call('INCR', KEYS[1])
-
-            if count == 1 then
-                redis.call('EXPIRE', KEYS[1], ARGV[1])
-            end
-
-            if count > tonumber(ARGV[2]) then
-                return 0
-            end
-
-            return 1
-            """;
-
-    private static final RedisScript<Long> SCRIPT =
-            RedisScript.of(RATE_LIMIT_SCRIPT, Long.class);
+    private static final RedisScript<Long> ALLOW_ORDER_REQUEST_SCRIPT =
+            RedisScript.of(
+                    new ClassPathResource("redis/order/rate-limit/allow-order-request.lua"),
+                    Long.class
+            );
 
     private final RedisTemplate<String, String> redisTemplate;
 
@@ -41,7 +31,7 @@ public class OrderRateLimiter {
 
         try {
             Long result = redisTemplate.execute(
-                    SCRIPT,
+                    ALLOW_ORDER_REQUEST_SCRIPT,
                     List.of(key),
                     String.valueOf(WINDOW_SECONDS),
                     String.valueOf(MAX_REQUESTS)

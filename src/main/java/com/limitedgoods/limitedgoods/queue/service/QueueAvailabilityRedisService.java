@@ -19,7 +19,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class QueueAvailabilityRedisService {
 
-    private static final Duration SOLD_OUT_TTL = Duration.ofMinutes(1000);
+    private static final Duration SOLD_OUT_TTL = Duration.ofMinutes(10);
 
     private static final RedisScript<Long> MARK_SOLD_OUT_AND_INVALIDATE_QUEUE_SCRIPT = RedisScript.of(
             new ClassPathResource(

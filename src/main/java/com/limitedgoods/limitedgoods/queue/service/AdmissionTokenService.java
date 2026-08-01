@@ -21,7 +21,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AdmissionTokenService {
 
-    private static final Duration TOKEN_TTL = Duration.ofSeconds(3000000);
+    private static final Duration TOKEN_TTL = Duration.ofSeconds(300);
 
     private final RedisTemplate<String, String> redisTemplate;
 
