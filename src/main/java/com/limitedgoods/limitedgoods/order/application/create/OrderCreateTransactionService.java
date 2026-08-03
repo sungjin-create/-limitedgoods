@@ -2,10 +2,6 @@ package com.limitedgoods.limitedgoods.order.application.create;
 
 import com.limitedgoods.limitedgoods.common.exception.BusinessException;
 import com.limitedgoods.limitedgoods.common.exception.ErrorCode;
-import com.limitedgoods.limitedgoods.event.outbox.entity.OutboxEventType;
-import com.limitedgoods.limitedgoods.event.outbox.service.OutboxEventWriter;
-import com.limitedgoods.limitedgoods.event.payload.order.OrderCreatedEvent;
-import com.limitedgoods.limitedgoods.event.payload.order.OrderExpiredEvent;
 import com.limitedgoods.limitedgoods.order.application.create.dto.OrderStockReservationResult;
 import com.limitedgoods.limitedgoods.order.application.history.OrderStatusHistoryService;
 import com.limitedgoods.limitedgoods.order.application.mapper.OrderResponseMapper;
@@ -14,8 +10,6 @@ import com.limitedgoods.limitedgoods.order.dto.response.OrderResponse;
 import com.limitedgoods.limitedgoods.order.entity.Order;
 import com.limitedgoods.limitedgoods.order.entity.OrderItem;
 import com.limitedgoods.limitedgoods.order.entity.OrderStatus;
-import com.limitedgoods.limitedgoods.order.metrics.OrderCreateMetricEvent;
-import com.limitedgoods.limitedgoods.order.metrics.OrderExpiredMetricEvent;
 import com.limitedgoods.limitedgoods.order.purchase.service.UserPurchaseLimitService;
 import com.limitedgoods.limitedgoods.order.repository.OrderItemRepository;
 import com.limitedgoods.limitedgoods.order.repository.OrderRepository;
@@ -25,7 +19,6 @@ import com.limitedgoods.limitedgoods.queue.service.QueueAvailabilityRedisService
 import com.limitedgoods.limitedgoods.user.entity.User;
 import com.limitedgoods.limitedgoods.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -47,8 +40,6 @@ public class OrderCreateTransactionService {
     private final OrderItemRepository orderItemRepository;
     private final OrderStockReservationService stockReservationService;
     private final OrderStatusHistoryService historyService;
-    private final ApplicationEventPublisher eventPublisher;
-    private final OutboxEventWriter outboxEventWriter;
     private final UserPurchaseLimitService userPurchaseLimitService;
     private final QueueAvailabilityRedisService queueAvailabilityRedisService;
 
@@ -89,21 +80,6 @@ public class OrderCreateTransactionService {
         saveOrderItems(savedOrder, reservation.orderItems());
 
         historyService.createInitialHistory(savedOrder);
-
-        eventPublisher.publishEvent(OrderCreateMetricEvent.success());
-
-        outboxEventWriter.append(
-                OutboxEventType.ORDER_CREATED,
-                "ORDER",
-                savedOrder.getId(),
-                new OrderCreatedEvent(
-                        savedOrder.getId(),
-                        userId,
-                        savedOrder.getTotalPrice(),
-                        savedOrder.getCreatedAt(),
-                        savedOrder.getExpiresAt()
-                )
-        );
 
         return orderResponseMapper.toResponse(savedOrder);
     }
@@ -194,29 +170,15 @@ public class OrderCreateTransactionService {
                 productSoldOutCacheService.clearSoldOutAfterCommit(item.getProduct().getId());
             }
 
+            OrderStatus previousStatus = order.getStatus();
             order.markExpired(LocalDateTime.now());
 
             historyService.record(
                     order,
-                    order.getStatus(),
+                    previousStatus,
                     OrderStatus.EXPIRED,
                     "새로운 주문 생성으로 이전 주문 만료처리",
                     order.getUser()
-            );
-
-            eventPublisher.publishEvent(OrderExpiredMetricEvent.replacedByNewOrder());
-
-            outboxEventWriter.append(
-                    OutboxEventType.ORDER_EXPIRED,
-                    "ORDER",
-                    order.getId(),
-                    new OrderExpiredEvent(
-                            order.getId(),
-                            order.getUser().getId(),
-                            order.getTotalPrice(),
-                            order.getCreatedAt(),
-                            LocalDateTime.now()
-                    )
             );
 
         }

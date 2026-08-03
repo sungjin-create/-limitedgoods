@@ -21,6 +21,8 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class OrderAdmissionCoordinatorTest {
 
+    private static final long GENERATION = 3L;
+
     @Mock AdmissionTokenService admissionTokenService;
     @Mock QueueService queueService;
 
@@ -33,7 +35,7 @@ class OrderAdmissionCoordinatorTest {
 
     @Test
     void normalProductDoesNotRequireAdmissionToken() {
-        Optional<OrderAdmissionClaim> result = coordinator.claimIfRequired(
+        Optional<OrderAdmissionClaim> result = coordinator.claimAdmissionIfRequired(
                 null, 1L, null, "checkout", "fingerprint"
         );
 
@@ -44,48 +46,67 @@ class OrderAdmissionCoordinatorTest {
     @Test
     void limitedProductRequiresAdmissionToken() {
         assertBusinessError(
-                () -> coordinator.claimIfRequired(null, 1L, 10L, "checkout", "fingerprint"),
+                () -> coordinator.claimAdmissionIfRequired(null, 1L, 10L, "checkout", "fingerprint"),
                 ErrorCode.ADMISSION_TOKEN_REQUIRED
         );
     }
 
     @Test
+    void loadTestBypassSkipsAdmissionForLimitedProduct() {
+        coordinator = new OrderAdmissionCoordinator(
+                admissionTokenService,
+                queueService,
+                admissionProperties(true)
+        );
+
+        Optional<OrderAdmissionClaim> result = coordinator.claimAdmissionIfRequired(
+                null, 1L, 10L, "checkout", "fingerprint"
+        );
+
+        assertThat(result).isEmpty();
+        verifyNoInteractions(admissionTokenService, queueService);
+    }
+
+    @Test
     void invalidAdmissionTokenIsRejected() {
-        when(admissionTokenService.claim("token", 1L, 10L, "checkout:fingerprint"))
-                .thenReturn(false);
+        when(admissionTokenService.claimToken("token", 1L, 10L, "checkout:fingerprint"))
+                .thenReturn(null);
 
         assertBusinessError(
-                () -> coordinator.claimIfRequired("token", 1L, 10L, "checkout", "fingerprint"),
+                () -> coordinator.claimAdmissionIfRequired("token", 1L, 10L, "checkout", "fingerprint"),
                 ErrorCode.ADMISSION_TOKEN_INVALID
         );
     }
 
     @Test
     void validAdmissionTokenReturnsClaimWithDeterministicClaimId() {
-        when(admissionTokenService.claim("token", 1L, 10L, "checkout:fingerprint"))
-                .thenReturn(true);
+        when(admissionTokenService.claimToken("token", 1L, 10L, "checkout:fingerprint"))
+                .thenReturn(GENERATION);
 
-        OrderAdmissionClaim claim = coordinator.claimIfRequired(
+        OrderAdmissionClaim claim = coordinator.claimAdmissionIfRequired(
                 "token", 1L, 10L, "checkout", "fingerprint"
         ).orElseThrow();
 
         assertThat(claim.claimId()).isEqualTo("checkout:fingerprint");
         assertThat(claim.userId()).isEqualTo(1L);
         assertThat(claim.productId()).isEqualTo(10L);
+        assertThat(claim.generation()).isEqualTo(GENERATION);
     }
 
     @Test
     void successfulOrderRemovesQueueBeforeConsumingToken() {
         OrderAdmissionClaim claim = claim();
-        when(admissionTokenService.completeConsumption("token", 1L, 10L, "claim"))
+        when(admissionTokenService.completeTokenConsumption(
+                "token", 1L, 10L, "claim", GENERATION
+        ))
                 .thenReturn(true);
 
-        coordinator.completeAfterOrderCreated(Optional.of(claim));
+        coordinator.completeClaimAfterOrderCreated(Optional.of(claim));
 
         InOrder inOrder = inOrder(queueService, admissionTokenService);
         inOrder.verify(queueService).removeFromQueue(1L, 10L);
         inOrder.verify(admissionTokenService)
-                .completeConsumption("token", 1L, 10L, "claim");
+                .completeTokenConsumption("token", 1L, 10L, "claim", GENERATION);
     }
 
     @Test
@@ -94,7 +115,7 @@ class OrderAdmissionCoordinatorTest {
         doThrow(new RuntimeException("redis unavailable"))
                 .when(queueService).removeFromQueue(1L, 10L);
 
-        coordinator.completeAfterOrderCreated(Optional.of(claim));
+        coordinator.completeClaimAfterOrderCreated(Optional.of(claim));
 
         verifyNoInteractions(admissionTokenService);
     }
@@ -102,16 +123,17 @@ class OrderAdmissionCoordinatorTest {
     @Test
     void businessFailureReleasesClaimWithRemainingTtl() {
         OrderAdmissionClaim claim = claim();
-        when(admissionTokenService.releaseClaim("token", 1L, 10L, "claim"))
+        when(admissionTokenService.releaseClaim("token", 1L, 10L, "claim", GENERATION))
                 .thenReturn(true);
 
-        coordinator.releaseAfterBusinessFailure(Optional.of(claim));
+        coordinator.releaseClaimAfterBusinessFailure(Optional.of(claim));
 
-        verify(admissionTokenService).releaseClaim("token", 1L, 10L, "claim");
+        verify(admissionTokenService)
+                .releaseClaim("token", 1L, 10L, "claim", GENERATION);
     }
 
     private OrderAdmissionClaim claim() {
-        return new OrderAdmissionClaim("token", 1L, 10L, "claim");
+        return new OrderAdmissionClaim("token", 1L, 10L, "claim", GENERATION);
     }
 
     private void assertBusinessError(Runnable action, ErrorCode expected) {

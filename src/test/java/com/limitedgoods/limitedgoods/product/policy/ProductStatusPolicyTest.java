@@ -31,11 +31,13 @@ class ProductStatusPolicyTest {
     }
 
     @Test
-    void scheduledProductRequiresFutureStartAndEnd() {
+    void scheduledProductRequiresFutureStart() {
         LocalDateTime start = LocalDateTime.now().plusHours(1);
         LocalDateTime end = start.plusHours(2);
 
         assertThatCode(() -> policy.validateSaleSchedule(ProductStatus.SCHEDULED, start, end))
+                .doesNotThrowAnyException();
+        assertThatCode(() -> policy.validateSaleSchedule(ProductStatus.SCHEDULED, start, null))
                 .doesNotThrowAnyException();
         assertBusinessError(
                 () -> policy.validateSaleSchedule(ProductStatus.SCHEDULED, null, end),
@@ -67,6 +69,8 @@ class ProductStatusPolicyTest {
         assertThatCode(() -> policy.validateTransition(ProductStatus.DRAFT, ProductStatus.ACTIVE))
                 .doesNotThrowAnyException();
         assertThatCode(() -> policy.validateTransition(ProductStatus.PAUSED, ProductStatus.SCHEDULED))
+                .doesNotThrowAnyException();
+        assertThatCode(() -> policy.validateTransition(ProductStatus.ACTIVE, ProductStatus.SCHEDULED))
                 .doesNotThrowAnyException();
         assertThatCode(() -> policy.validateTransition(ProductStatus.ACTIVE, ProductStatus.ACTIVE))
                 .doesNotThrowAnyException();

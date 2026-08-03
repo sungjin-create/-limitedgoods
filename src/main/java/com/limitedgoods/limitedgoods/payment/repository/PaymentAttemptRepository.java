@@ -1,7 +1,6 @@
 package com.limitedgoods.limitedgoods.payment.repository;
 
 import com.limitedgoods.limitedgoods.payment.entity.PaymentAttempt;
-import com.limitedgoods.limitedgoods.payment.entity.PaymentAttemptStatus;
 import org.springframework.data.repository.query.Param;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;

@@ -1,6 +1,5 @@
 package com.limitedgoods.limitedgoods.order.repository;
 
-import com.limitedgoods.limitedgoods.backoffice.dashboard.dto.BackofficeRecentOrderResponse;
 import com.limitedgoods.limitedgoods.order.dto.response.OrderSummaryResponse;
 import com.limitedgoods.limitedgoods.order.entity.Order;
 import com.limitedgoods.limitedgoods.order.entity.OrderStatus;
@@ -85,82 +84,6 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> findActiveOrdersForUpdate(
             @Param("userId") Long userId,
             @Param("statuses") List<OrderStatus> orderStatusList
-    );
-
-
-    @Query("""
-    select count(o)
-    from Order o
-    where o.createdAt >= :start
-      and o.createdAt < :end
-    """)
-    long countOrdersCreatedBetween(
-            @Param("start") LocalDateTime start,
-            @Param("end") LocalDateTime end
-    );
-
-    @Query("""
-    select count(o)
-    from Order o
-    where o.paidAt >= :start
-      and o.paidAt < :end
-      and o.status in :statuses
-    """)
-    long countPaidOrdersBetween(
-            @Param("start") LocalDateTime start,
-            @Param("end") LocalDateTime end,
-            @Param("statuses") List<OrderStatus> statuses
-    );
-
-    @Query("""
-    select coalesce(sum(o.totalPrice), 0)
-    from Order o
-    where o.paidAt >= :start
-      and o.paidAt < :end
-      and o.status in :statuses
-    """)
-    long sumRevenueBetween(
-            @Param("start") LocalDateTime start,
-            @Param("end") LocalDateTime end,
-            @Param("statuses") List<OrderStatus> statuses
-    );
-
-
-    @Query("""
-    select count(o)
-    from Order o
-    where o.createdAt >= :start
-      and o.createdAt < :end
-    """)
-    long countCreatedBetween(
-            @Param("start") LocalDateTime start,
-            @Param("end") LocalDateTime end
-    );
-
-    @Query("""
-    select count(o)
-    from Order o
-    where o.paidAt >= :start
-      and o.paidAt < :end
-      and o.status in :statuses
-    """)
-    long countPaidBetween(
-            @Param("start") LocalDateTime start,
-            @Param("end") LocalDateTime end,
-            @Param("statuses") List<OrderStatus> statuses
-    );
-
-    @Query("""
-    select count(o)
-    from Order o
-    where o.createdAt >= :start
-      and o.createdAt < :end
-      and o.status in :statuses
-    """)
-    long countCreatedBetweenAndStatusIn(
-            @Param("start") LocalDateTime start,
-            @Param("end") LocalDateTime end,
-            @Param("statuses") List<OrderStatus> statuses
     );
 
     @Query("""

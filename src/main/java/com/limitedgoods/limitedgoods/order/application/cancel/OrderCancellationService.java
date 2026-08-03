@@ -2,10 +2,6 @@ package com.limitedgoods.limitedgoods.order.application.cancel;
 
 import com.limitedgoods.limitedgoods.common.exception.BusinessException;
 import com.limitedgoods.limitedgoods.common.exception.ErrorCode;
-import com.limitedgoods.limitedgoods.event.outbox.entity.OutboxEventType;
-import com.limitedgoods.limitedgoods.event.outbox.service.OutboxEventWriter;
-import com.limitedgoods.limitedgoods.event.payload.order.OrderCanceledEvent;
-import com.limitedgoods.limitedgoods.event.payload.order.OrderCanceledItem;
 import com.limitedgoods.limitedgoods.order.application.cancel.dto.RefundStartAction;
 import com.limitedgoods.limitedgoods.order.application.cancel.dto.RefundStartResult;
 import com.limitedgoods.limitedgoods.order.application.history.OrderStatusHistoryService;
@@ -16,6 +12,7 @@ import com.limitedgoods.limitedgoods.order.entity.Order;
 import com.limitedgoods.limitedgoods.order.entity.OrderItem;
 import com.limitedgoods.limitedgoods.order.entity.OrderStatus;
 import com.limitedgoods.limitedgoods.order.repository.OrderItemRepository;
+import com.limitedgoods.limitedgoods.order.purchase.service.UserPurchaseLimitService;
 import com.limitedgoods.limitedgoods.payment.entity.PaymentAttempt;
 import com.limitedgoods.limitedgoods.payment.entity.RefundAttempt;
 import com.limitedgoods.limitedgoods.payment.repository.PaymentAttemptRepository;
@@ -39,8 +36,8 @@ public class OrderCancellationService {
     private final ProductSoldOutCacheService productSoldOutCacheService;
     private final OrderStatusHistoryService historyService;
     private final PaymentAttemptRepository paymentAttemptRepository;
-    private final OutboxEventWriter outboxEventWriter;
     private final RefundAttemptRepository refundAttemptRepository;
+    private final UserPurchaseLimitService userPurchaseLimitService;
 
     @Transactional
     public RefundStartResult prepareRefund(Long userId, Long orderId) {
@@ -59,10 +56,6 @@ public class OrderCancellationService {
             );
         }
 
-        /*
-         * 타임아웃 후 사용자가 다시 요청한 경우.
-         * 새 환불 요청을 생성하지 않고 기존 환불 결과를 조회한다.
-         */
         if (order.getStatus() == OrderStatus.CANCEL_REQUESTED) {
             RefundAttempt latestAttempt =
                     refundAttemptRepository
@@ -71,8 +64,9 @@ public class OrderCancellationService {
                                     new BusinessException(ErrorCode.REFUND_ATTEMPT_NOT_FOUND));
 
             return switch (latestAttempt.getStatus()) {
-                case PROCESSING, UNKNOWN ->
-                        toReconcileResult(latestAttempt);
+                case PROCESSING, UNKNOWN -> throw new BusinessException(
+                        ErrorCode.PAYMENT_REFUND_RESULT_UNKNOWN
+                );
 
                 case APPROVED ->
                         new RefundStartResult(
@@ -93,7 +87,7 @@ public class OrderCancellationService {
             };
         }
 
-        if (order.getStatus() != OrderStatus.PAID && order.getStatus() != OrderStatus.CANCEL_FAILED) {
+        if (order.getStatus() != OrderStatus.PAID) {
             throw new BusinessException(
                     ErrorCode.ORDER_CANCEL_NOT_ALLOWED,
                     "현재 주문 상태 = " + order.getStatus()
@@ -102,30 +96,18 @@ public class OrderCancellationService {
 
         OrderStatus previousStatus = order.getStatus();
 
-        if (previousStatus == OrderStatus.PAID) {
-            order.requestCancel();
-        } else {
-            order.retryCancel();
-        }
+        order.requestCancel();
 
         historyService.record(
                 order,
                 previousStatus,
                 OrderStatus.CANCEL_REQUESTED,
-                previousStatus == OrderStatus.PAID
-                        ? "사용자 환불 요청"
-                        : "사용자 환불 재시도",
+                "사용자 환불 요청",
                 order.getUser()
         );
 
         PaymentAttempt paymentAttempt = getApprovedPaymentAttempt(orderId);
 
-        /*
-         * CANCEL_FAILED 이후 재시도는 새로운 환불 작업이므로
-         * 새로운 idempotency key를 사용한다.
-         *
-         * UNKNOWN 재조회는 위 분기에서 기존 키를 재사용한다.
-         */
         String idempotencyKey = "refund:" + orderId + ":" + java.util.UUID.randomUUID();
 
         RefundAttempt refundAttempt = refundAttemptRepository.save(
@@ -173,6 +155,8 @@ public class OrderCancellationService {
             throw new BusinessException(ErrorCode.ORDER_NOT_FOUND);
         }
 
+        userPurchaseLimitService.releasePaidQuantity(userId, orderItems);
+
         for (OrderItem item : orderItems) {
             Long productId = item.getProduct().getId();
 
@@ -191,29 +175,6 @@ public class OrderCancellationService {
                 OrderStatus.REFUNDED,
                 "PG 환불 완료",
                 order.getUser()
-        );
-
-        outboxEventWriter.append(
-                OutboxEventType.ORDER_CANCELED,
-                "ORDER",
-                orderId,
-                new OrderCanceledEvent(
-                        orderId,
-                        userId,
-                        order.getTotalPrice(),
-                        order.getCreatedAt(),
-                        order.getPaidAt(),
-                        order.getRefundedAt(),
-                        orderItems.stream()
-                                .map(item ->
-                                        new OrderCanceledItem(
-                                                item.getProduct().getId(),
-                                                item.getQuantity(),
-                                                item.getPrice()
-                                        )
-                                )
-                                .toList()
-                )
         );
 
         return orderResponseMapper.toResponse(order);
@@ -253,21 +214,6 @@ public class OrderCancellationService {
                 .findApprovedForRefund(orderId)
                 .orElseThrow(() ->
                         new BusinessException(ErrorCode.PAYMENT_ATTEMPT_NOT_FOUND));
-    }
-
-    private RefundStartResult toReconcileResult(
-            RefundAttempt attempt
-    ) {
-        return new RefundStartResult(
-                RefundStartAction.RECONCILE_PG,
-                attempt.getId(),
-                attempt.getOrder().getUser().getId(),
-                attempt.getOrder().getId(),
-                attempt.getPgTransactionId(),
-                attempt.getAmount(),
-                attempt.getIdempotencyKey(),
-                null
-        );
     }
 
 }

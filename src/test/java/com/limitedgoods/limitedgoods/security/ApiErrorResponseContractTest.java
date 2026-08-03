@@ -1,9 +1,10 @@
 package com.limitedgoods.limitedgoods.security;
 
-import com.limitedgoods.limitedgoods.cart.controller.CartController;
-import com.limitedgoods.limitedgoods.cart.service.CartService;
 import com.limitedgoods.limitedgoods.common.exception.GlobalExceptionHandler;
+import com.limitedgoods.limitedgoods.queue.controller.QueueController;
+import com.limitedgoods.limitedgoods.queue.service.QueueService;
 import com.limitedgoods.limitedgoods.security.config.SecurityConfig;
+import com.limitedgoods.limitedgoods.security.config.CorsProperties;
 import com.limitedgoods.limitedgoods.security.handler.ApiAccessDeniedHandler;
 import com.limitedgoods.limitedgoods.security.handler.ApiAuthenticationEntryPoint;
 import com.limitedgoods.limitedgoods.security.jwt.JwtFilter;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -25,7 +27,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(CartController.class)
+@WebMvcTest(
+        controllers = QueueController.class,
+        properties = "app.cors.allowed-origins=http://localhost:5173"
+)
+@EnableConfigurationProperties(CorsProperties.class)
 @Import({
         SecurityConfig.class,
         GlobalExceptionHandler.class,
@@ -38,7 +44,7 @@ class ApiErrorResponseContractTest {
     MockMvc mockMvc;
 
     @MockitoBean
-    CartService cartService;
+    QueueService queueService;
 
     @MockitoBean
     JwtFilter jwtFilter;
@@ -57,13 +63,12 @@ class ApiErrorResponseContractTest {
 
     @Test
     void invalidRequestReturns400() throws Exception {
-        mockMvc.perform(post("/api/cart/item/add")
+        mockMvc.perform(post("/api/user/queue/enter")
                         .with(user("user@example.com").roles("USER"))
                         .contentType(APPLICATION_JSON)
                         .content("""
                                 {
-                                  "productId": null,
-                                  "quantity": 0
+                                  "productId": null
                                 }
                                 """))
                 .andExpect(status().isBadRequest())
@@ -74,7 +79,7 @@ class ApiErrorResponseContractTest {
 
     @Test
     void missingAuthenticationReturns401() throws Exception {
-        mockMvc.perform(get("/api/cart"))
+        mockMvc.perform(get("/api/user/queue/status?productId=1"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.code").value("AUTH_001"))
@@ -83,7 +88,7 @@ class ApiErrorResponseContractTest {
 
     @Test
     void userAccessingAdminApiReturns403() throws Exception {
-        mockMvc.perform(get("/api/admin/backoffice/product")
+        mockMvc.perform(post("/api/admin/backoffice/product/register")
                         .with(user("user@example.com").roles("USER")))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.success").value(false))

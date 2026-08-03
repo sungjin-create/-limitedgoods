@@ -60,7 +60,7 @@ public class PaymentAttempt {
     @Column(name = "requested_at", nullable = false)
     private LocalDateTime requestedAt;
 
-    @Column(name = "approved_at", nullable = false)
+    @Column(name = "approved_at")
     private LocalDateTime approvedAt;
 
     @Column(name = "updated_at", nullable = false)
@@ -93,6 +93,7 @@ public class PaymentAttempt {
     public void approve(PaymentResult result) {
         this.status = PaymentAttemptStatus.APPROVED;
         this.pgTransactionId = result.transactionId();
+        this.approvedAmount = result.approvedAmount();
         this.approvedAt = result.approvedAt();
         this.updatedAt = LocalDateTime.now();
     }

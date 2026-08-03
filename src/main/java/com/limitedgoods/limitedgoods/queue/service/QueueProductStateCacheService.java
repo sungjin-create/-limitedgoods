@@ -3,9 +3,9 @@ package com.limitedgoods.limitedgoods.queue.service;
 import com.limitedgoods.limitedgoods.common.exception.BusinessException;
 import com.limitedgoods.limitedgoods.common.exception.ErrorCode;
 import com.limitedgoods.limitedgoods.product.entity.Product;
-import com.limitedgoods.limitedgoods.product.entity.ProductType;
 import com.limitedgoods.limitedgoods.product.infrastructure.redis.ProductRedisKeys;
 import com.limitedgoods.limitedgoods.queue.domain.QueueProductState;
+import com.limitedgoods.limitedgoods.queue.domain.QueueProductStateSnapshot;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -42,8 +42,9 @@ public class QueueProductStateCacheService {
         QueueProductState state;
 
         try {
-            state = QueueProductState.valueOf(value);
-        } catch (IllegalArgumentException e) {
+            state = QueueProductStateSnapshot.deserialize(value)
+                    .stateAt(LocalDateTime.now());
+        } catch (RuntimeException e) {
             throw new BusinessException(ErrorCode.QUEUE_STATE_UNAVAILABLE);
         }
 
@@ -59,36 +60,24 @@ public class QueueProductStateCacheService {
     }
 
     public void sync(Product product) {
-        QueueProductState state = calculateState(product);
+        String snapshot = QueueProductStateSnapshot.from(product).serialize();
 
         redisTemplate.opsForValue().set(
                 ProductRedisKeys.queueState(product.getId()),
-                state.name()
+                snapshot
         );
     }
 
     public void syncAfterCommit(Product product) {
         Long productId = product.getId();
-        QueueProductState state = calculateState(product);
+        String snapshot = QueueProductStateSnapshot.from(product).serialize();
 
         executeAfterCommit(() ->
                 redisTemplate.opsForValue().set(
                         ProductRedisKeys.queueState(productId),
-                        state.name()
+                        snapshot
                 )
         );
-    }
-
-    private QueueProductState calculateState(Product product) {
-        if (product.getType() != ProductType.LIMITED) {
-            return QueueProductState.UNSUPPORTED;
-        }
-
-        if (product.isPurchasableAt(LocalDateTime.now())) {
-            return QueueProductState.OPEN;
-        }
-
-        return QueueProductState.CLOSED;
     }
 
     private void executeAfterCommit(Runnable action) {

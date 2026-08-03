@@ -4,7 +4,6 @@ import com.limitedgoods.limitedgoods.common.exception.BusinessException;
 import com.limitedgoods.limitedgoods.common.exception.ErrorCode;
 import com.limitedgoods.limitedgoods.order.application.cancel.dto.RefundStartResult;
 import com.limitedgoods.limitedgoods.order.dto.response.OrderResponse;
-import com.limitedgoods.limitedgoods.payment.dto.RefundLookupResult;
 import com.limitedgoods.limitedgoods.payment.dto.RefundResult;
 import com.limitedgoods.limitedgoods.payment.exception.PaymentNetworkException;
 import com.limitedgoods.limitedgoods.payment.exception.PaymentRefundDeclinedException;
@@ -40,7 +39,6 @@ public class CancelOrderUseCase {
 
             case REQUEST_PG -> requestRefund(start);
 
-            case RECONCILE_PG -> reconcileRefund(start);
         };
     }
 
@@ -77,42 +75,6 @@ public class CancelOrderUseCase {
 
             throw new BusinessException(ErrorCode.PAYMENT_REFUND_RESULT_UNKNOWN);
         }
-    }
-
-    private OrderResponse reconcileRefund(RefundStartResult start) {
-        RefundLookupResult lookup = paymentService.lookupRefund(
-                start.pgTransactionId(),
-                start.idempotencyKey()
-        );
-
-        return switch (lookup.status()) {
-            case APPROVED -> applyApproved(start, lookup.toRefundResult());
-
-            case DECLINED -> {
-                refundAttemptStateService.decline(
-                        start.refundAttemptId(),
-                        lookup.failureCode(),
-                        lookup.failureReason()
-                );
-
-                cancellationService.failRefund(
-                        start.userId(),
-                        start.orderId(),
-                        lookup.failureReason()
-                );
-
-                throw new BusinessException(ErrorCode.PAYMENT_CANCEL_FAILED);
-            }
-
-            case PROCESSING, NOT_FOUND -> {
-                refundAttemptStateService.markUnknown(
-                        start.refundAttemptId(),
-                        "PG 환불 결과 확인 중"
-                );
-
-                throw new BusinessException(ErrorCode.PAYMENT_REFUND_PROCESSING);
-            }
-        };
     }
 
     private OrderResponse applyApproved(

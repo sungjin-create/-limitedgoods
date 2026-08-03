@@ -34,9 +34,7 @@ public class UserPurchaseLimitService {
             );
 
             if (updated != 1) {
-                throw new BusinessException(
-                        ErrorCode.MAX_PURCHASE_QUANTITY_EXCEEDED
-                );
+                throw new BusinessException(ErrorCode.MAX_PURCHASE_QUANTITY_EXCEEDED);
             }
         }
     }

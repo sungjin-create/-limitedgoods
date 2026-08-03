@@ -1,32 +1,24 @@
 package com.limitedgoods.limitedgoods.backoffice.product.service;
 
 import com.limitedgoods.limitedgoods.backoffice.product.dto.request.ProductRegisterRequest;
-import com.limitedgoods.limitedgoods.backoffice.product.dto.request.ProductUpdateRequest;
+import com.limitedgoods.limitedgoods.backoffice.product.dto.request.ProductSaleSettingsRequest;
 import com.limitedgoods.limitedgoods.backoffice.product.dto.request.StockAdjustmentRequest;
-import com.limitedgoods.limitedgoods.backoffice.product.dto.response.ProductListResponse;
 import com.limitedgoods.limitedgoods.backoffice.product.dto.response.ProductResponse;
-import com.limitedgoods.limitedgoods.backoffice.product.dto.response.ProductStockOverViewResponse;
-import com.limitedgoods.limitedgoods.backoffice.product.dto.response.ProductSummaryResponse;
-import com.limitedgoods.limitedgoods.backoffice.product.query.BackofficeProductQueryRepository;
-import com.limitedgoods.limitedgoods.backoffice.product.query.ProductOrderSummaryQueryResult;
 import com.limitedgoods.limitedgoods.common.exception.BusinessException;
 import com.limitedgoods.limitedgoods.common.exception.ErrorCode;
-import com.limitedgoods.limitedgoods.product.application.history.ProductHistoryService;
-import com.limitedgoods.limitedgoods.product.application.history.ProductSnapshot;
 import com.limitedgoods.limitedgoods.product.entity.Product;
 import com.limitedgoods.limitedgoods.product.entity.ProductStatus;
 import com.limitedgoods.limitedgoods.product.entity.ProductType;
 import com.limitedgoods.limitedgoods.product.policy.ProductStatusPolicy;
 import com.limitedgoods.limitedgoods.product.repository.ProductRepository;
 import com.limitedgoods.limitedgoods.queue.service.QueueProductStateCacheService;
-import com.limitedgoods.limitedgoods.user.application.support.UserAccessService;
-import com.limitedgoods.limitedgoods.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 import static com.limitedgoods.limitedgoods.product.entity.ProductStatus.*;
 
@@ -35,34 +27,16 @@ import static com.limitedgoods.limitedgoods.product.entity.ProductStatus.*;
 public class BackofficeProductService {
 
     private final ProductRepository productRepository;
-    private final BackofficeProductQueryRepository backofficeProductQueryRepository;
     private final ProductStatusPolicy productStatusPolicy;
-    private final UserAccessService userAccessService;
-    private final ProductHistoryService productHistoryService;
     private final QueueProductStateCacheService queueProductStateCacheService;
 
-    @Transactional
-    public ProductListResponse findBackofficeProductList(ProductStatus status) {
-        ProductSummaryResponse productSummary =
-                backofficeProductQueryRepository.findProductSummary();
-
-        List<ProductResponse> productList;
-        if(status == null) {
-            productList = backofficeProductQueryRepository.findAllProducts();
-        } else {
-            productList = backofficeProductQueryRepository.findAllProductsByStatus(status);
-        }
-
-        return ProductListResponse.builder()
-                .summary(productSummary)
-                .products(productList)
-                .build();
+    @Transactional(readOnly = true)
+    public Page<ProductResponse> getProducts(Pageable pageable) {
+        return productRepository.findAll(pageable).map(this::toResponse);
     }
 
     @Transactional
-    public ProductResponse registerProduct (Long userId, ProductRegisterRequest productRegisterRequest) {
-        User changedByUser = userAccessService.getUser(userId);
-
+    public ProductResponse registerProduct(ProductRegisterRequest productRegisterRequest) {
         String name = productRegisterRequest.getName();
         String description = productRegisterRequest.getDescription();
         int price = productRegisterRequest.getPrice();
@@ -97,64 +71,34 @@ public class BackofficeProductService {
 
         queueProductStateCacheService.syncAfterCommit(saveProduct);
 
-        productHistoryService.recordInitial(saveProduct, changedByUser);
-
         return toResponse(saveProduct);
     }
 
     @Transactional
-    public ProductResponse updateProduct (Long userId, ProductUpdateRequest productUpdateRequest) {
-        User changedByUser = userAccessService.getUser(userId);
-
-        Long id = productUpdateRequest.getId();
-        String nextName = productUpdateRequest.getName();
-        String nextDescription = productUpdateRequest.getDescription();
-        int nextPrice = productUpdateRequest.getPrice();
-        Integer nextMaxPurchaseQuantity = productUpdateRequest.getMaxPurchaseQuantity();
-        ProductType nextType = productUpdateRequest.getType();
-        ProductStatus nextStatus = productUpdateRequest.getStatus();
-        LocalDateTime nextSaleStartAt = productUpdateRequest.getSaleStartAt();
-        LocalDateTime nextSaleEndAt = productUpdateRequest.getSaleEndAt();
-
-        Product updateProduct = productRepository.findByIdWithLock(id)
+    public ProductResponse updateSaleSettings(ProductSaleSettingsRequest request) {
+        Product product = productRepository.findByIdWithLock(request.id())
                 .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_PRODUCT_ID));
 
-        ProductSnapshot before = ProductSnapshot.from(updateProduct);
-        
-        //상태변경 검사
-        productStatusPolicy.validateTransition(updateProduct.getStatus(), nextStatus);
+        ProductStatus nextStatus = request.saleStartAt() != null
+                && request.saleStartAt().isAfter(LocalDateTime.now())
+                ? SCHEDULED
+                : ACTIVE;
 
-        //상태에 따른 일정 변경 검사
-        productStatusPolicy.validateSaleSchedule(nextStatus, nextSaleStartAt, nextSaleEndAt);
+        productStatusPolicy.validateTransition(product.getStatus(), nextStatus);
+        productStatusPolicy.validateSaleSchedule(nextStatus, request.saleStartAt(), product.getSaleEndAt());
 
-        updateProduct.setName(nextName);
-        updateProduct.setDescription(nextDescription);
-        updateProduct.setPrice(nextPrice);
-        updateProduct.setMaxPurchaseQuantity(nextMaxPurchaseQuantity);
-        updateProduct.setType(nextType);
-        updateProduct.setStatus(nextStatus);
-        updateProduct.setSaleStartAt(nextSaleStartAt);
-        updateProduct.setSaleEndAt(nextSaleEndAt);
-        updateProduct.setUpdatedAt(LocalDateTime.now());
-        
-        ProductSnapshot after = ProductSnapshot.from(updateProduct);
+        product.setType(request.type());
+        product.setStatus(nextStatus);
+        product.setSaleStartAt(request.saleStartAt());
+        product.setUpdatedAt(LocalDateTime.now());
 
-        queueProductStateCacheService.syncAfterCommit(updateProduct);
+        queueProductStateCacheService.syncAfterCommit(product);
 
-        productHistoryService.recordProductUpdate(
-                updateProduct,
-                changedByUser,
-                before,
-                after,
-                productUpdateRequest.getReason().trim());
-
-        return toResponse(updateProduct);
+        return toResponse(product);
     }
 
     @Transactional
-    public ProductResponse adjustStock(Long userId, StockAdjustmentRequest request) {
-        User changedByUser = userAccessService.getUser(userId);
-
+    public ProductResponse adjustStock(StockAdjustmentRequest request) {
         Product product = productRepository.findByIdWithLock(request.getId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_PRODUCT_ID));
 
@@ -196,22 +140,7 @@ public class BackofficeProductService {
 
         queueProductStateCacheService.syncAfterCommit(product);
 
-        productHistoryService.recordStock(
-                product,
-                changedByUser,
-                currentStock,
-                adjustedStock,
-                request.getReason().trim());
-
         return toResponse(product);
-    }
-
-    @Transactional
-    public ProductStockOverViewResponse findProductStockOverView(Long productId){
-        ProductOrderSummaryQueryResult queryResult =
-                backofficeProductQueryRepository.findProductOrdersSummary(productId)
-                .orElseThrow(()->new BusinessException(ErrorCode.INVALID_PRODUCT_ID));
-        return ProductStockOverViewResponse.from(queryResult);
     }
 
 

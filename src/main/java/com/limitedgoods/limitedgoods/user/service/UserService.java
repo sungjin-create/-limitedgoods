@@ -13,6 +13,7 @@ import com.limitedgoods.limitedgoods.user.entity.UserStatus;
 import com.limitedgoods.limitedgoods.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,8 +32,9 @@ public class UserService {
         String usersName = userSignUpRequest.name();
         String usersEmail = userSignUpRequest.email();
         String usersPassword = userSignUpRequest.password();
+        String confirmPassword = userSignUpRequest.confirmPassword();
 
-        checkSignUpUsers(usersName, usersEmail, usersPassword);
+        checkSignUpUsers(usersName, usersEmail, usersPassword, confirmPassword);
 
         User signUpUser = new User();
         signUpUser.setName(usersName);
@@ -43,14 +45,28 @@ public class UserService {
         signUpUser.setStatus(UserStatus.ACTIVE);
         signUpUser.setTokenVersion(0);
 
-        userRepository.save(signUpUser);
+        try {
+            userRepository.saveAndFlush(signUpUser);
+        } catch (DataIntegrityViolationException exception) {
+            throw new BusinessException(ErrorCode.DUPLICATE_EMAIL);
+        }
         return usersEmail;
     }
 
-    private void checkSignUpUsers(String usersName, String usersEmail, String usersPassword) {
-        if(usersName == null || usersEmail == null || usersPassword == null ||
-                usersName.isEmpty() || usersEmail.isEmpty() || usersPassword.isEmpty()) {
+    private void checkSignUpUsers(
+            String usersName,
+            String usersEmail,
+            String usersPassword,
+            String confirmPassword
+    ) {
+        if (usersName == null || usersEmail == null || usersPassword == null || confirmPassword == null
+                || usersName.isBlank() || usersEmail.isBlank()
+                || usersPassword.isBlank() || confirmPassword.isBlank()) {
             throw new BusinessException(ErrorCode.INVALID_INPUT);
+        }
+
+        if (!usersPassword.equals(confirmPassword)) {
+            throw new BusinessException(ErrorCode.PASSWORD_CONFIRMATION_MISMATCH);
         }
 
         if (userRepository.existsByEmail(usersEmail)) {
@@ -69,6 +85,10 @@ public class UserService {
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            throw new BusinessException(ErrorCode.USER_SUSPENDED);
+        }
 
         if (!passwordEncoder.matches(password, user.getPassword())) {
             throw new BusinessException(ErrorCode.INVALID_INPUT);

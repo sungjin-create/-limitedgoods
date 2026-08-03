@@ -61,14 +61,10 @@ public class QueueService {
      */
     public void removeFromQueue(Long userId, Long productId) {
         redisTemplate.opsForZSet().remove(
-                QueueRedisKeys.waiting(productId),
-                userId.toString()
-        );
+                QueueRedisKeys.waiting(productId), userId.toString());
 
         redisTemplate.opsForZSet().remove(
-                QueueRedisKeys.activity(productId),
-                userId.toString()
-        );
+                QueueRedisKeys.activity(productId), userId.toString());
 
         log.info(
                 "event=queue_member_removed userId={} productId={}",

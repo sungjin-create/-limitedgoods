@@ -22,8 +22,4 @@ public interface PaymentService {
             String idempotencyKey
     );
 
-    RefundLookupResult lookupRefund(
-            String pgTransactionId,
-            String idempotencyKey
-    );
 }

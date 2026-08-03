@@ -12,8 +12,9 @@ public record OrderItemRequest(
     @Positive(message = "ID는 양수만 가능합니다.")
     Long productId,
 
+    @NotNull(message = "수량은 필수입니다.")
     @Positive(message = "수량은 양수만 가능합니다.")
-    int quantity
+    Integer quantity
 ){
 
 }

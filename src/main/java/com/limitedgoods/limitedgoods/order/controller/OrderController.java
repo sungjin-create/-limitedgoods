@@ -88,16 +88,4 @@ public class OrderController {
         );
     }
 
-    @PostMapping("/{orderId}/refund/retry")
-    public ResponseEntity<ApiResponse<OrderResponse>> retryRefund(
-            @PathVariable Long orderId,
-            @AuthenticationPrincipal CustomUserDetails userDetails
-    ) {
-        OrderResponse response = cancelOrderUseCase.execute(userDetails.getUserId(), orderId);
-
-        return ResponseEntity.ok(
-                ApiResponse.success(response)
-        );
-    }
-
 }

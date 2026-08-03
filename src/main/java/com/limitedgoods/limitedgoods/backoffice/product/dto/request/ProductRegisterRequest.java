@@ -22,11 +22,11 @@ public class ProductRegisterRequest {
 
     @NotNull(message = "가격은 필수입니다.")
     @PositiveOrZero(message = "양수형태만 가능합니다.")
-    private int price;
+    private Integer price;
 
     @NotNull(message = "초도 재고는 필수입니다.")
     @Positive(message = "초도 재고는 1개 이상이어야 합니다.")
-    private int initialStock;
+    private Integer initialStock;
 
     @Positive(message = "구매제한은 없거나, 1개 이상이어야 합니다.")
     private Integer maxPurchaseQuantity;

@@ -8,7 +8,6 @@ import com.limitedgoods.limitedgoods.order.application.history.OrderStatusHistor
 import com.limitedgoods.limitedgoods.order.dto.request.OrderItemRequest;
 import com.limitedgoods.limitedgoods.order.dto.request.OrderRequest;
 import com.limitedgoods.limitedgoods.order.dto.response.OrderResponse;
-import com.limitedgoods.limitedgoods.order.metrics.OrderMetrics;
 import com.limitedgoods.limitedgoods.order.policy.OrderProductValidationResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -32,14 +31,12 @@ class CreateOrderUseCaseTest {
     private static final Long PRODUCT_ID = 10L;
     private static final String CHECKOUT_TOKEN = "checkout-token";
     private static final String FINGERPRINT = "request-fingerprint";
+    private static final long GENERATION = 3L;
 
     @Mock OrderCreatePreconditionChecker preconditionChecker;
     @Mock OrderAdmissionCoordinator admissionCoordinator;
     @Mock OrderRequestFingerprintGenerator fingerprintGenerator;
     @Mock OrderCreateTransactionService transactionService;
-    @Mock
-    OrderMetrics orderMetrics;
-
     private CreateOrderUseCase useCase;
     private OrderRequest request;
 
@@ -49,8 +46,7 @@ class CreateOrderUseCaseTest {
                 preconditionChecker,
                 admissionCoordinator,
                 fingerprintGenerator,
-                transactionService,
-                orderMetrics
+                transactionService
         );
         request = request(CHECKOUT_TOKEN, PRODUCT_ID, 1, "admission-token");
     }
@@ -77,7 +73,7 @@ class CreateOrderUseCaseTest {
     void execute_newLimitedOrder_claimsAndCompletesAdmission() {
         OrderProductValidationResult validation = new OrderProductValidationResult(PRODUCT_ID);
         OrderAdmissionClaim claim = new OrderAdmissionClaim(
-                "admission-token", USER_ID, PRODUCT_ID, "claim-id"
+                "admission-token", USER_ID, PRODUCT_ID, "claim-id", GENERATION
         );
         OrderResponse created = response(101L);
         stubNewOrder(validation, Optional.of(claim));
@@ -92,20 +88,20 @@ class CreateOrderUseCaseTest {
         inOrder.verify(preconditionChecker).validateRequest(request);
         inOrder.verify(transactionService).findIdempotentOrder(USER_ID, CHECKOUT_TOKEN, FINGERPRINT);
         inOrder.verify(preconditionChecker).checkNewOrder(USER_ID, request);
-        inOrder.verify(admissionCoordinator).claimIfRequired(
+        inOrder.verify(admissionCoordinator).claimAdmissionIfRequired(
                 "admission-token", USER_ID, PRODUCT_ID, CHECKOUT_TOKEN, FINGERPRINT
         );
         inOrder.verify(transactionService).createOrder(
                 USER_ID, request.items(), 300L, CHECKOUT_TOKEN, FINGERPRINT
         );
-        inOrder.verify(admissionCoordinator).completeAfterOrderCreated(Optional.of(claim));
+        inOrder.verify(admissionCoordinator).completeClaimAfterOrderCreated(Optional.of(claim));
     }
 
     @Test
     @DisplayName("재고 부족 같은 비즈니스 실패이면 선점한 입장 토큰을 해제한다")
     void execute_businessFailure_releasesAdmissionClaim() {
         OrderAdmissionClaim claim = new OrderAdmissionClaim(
-                "admission-token", USER_ID, PRODUCT_ID, "claim-id"
+                "admission-token", USER_ID, PRODUCT_ID, "claim-id", GENERATION
         );
         stubNewOrder(new OrderProductValidationResult(PRODUCT_ID), Optional.of(claim));
         BusinessException failure = new BusinessException(ErrorCode.INSUFFICIENT_STOCK);
@@ -114,16 +110,16 @@ class CreateOrderUseCaseTest {
 
         assertThatThrownBy(() -> useCase.execute(USER_ID, request)).isSameAs(failure);
 
-        verify(admissionCoordinator).releaseAfterBusinessFailure(Optional.of(claim));
-        verify(admissionCoordinator, never()).completeAfterOrderCreated(any());
-        verify(admissionCoordinator, never()).retainAfterUnknownFailure(any(), any());
+        verify(admissionCoordinator).releaseClaimAfterBusinessFailure(Optional.of(claim));
+        verify(admissionCoordinator, never()).completeClaimAfterOrderCreated(any());
+        verify(admissionCoordinator, never()).retainClaimAfterUnknownFailure(any(), any());
     }
 
     @Test
     @DisplayName("DB 결과가 불명확한 시스템 실패이면 입장 토큰 선점을 유지한다")
     void execute_unknownFailure_retainsAdmissionClaim() {
         OrderAdmissionClaim claim = new OrderAdmissionClaim(
-                "admission-token", USER_ID, PRODUCT_ID, "claim-id"
+                "admission-token", USER_ID, PRODUCT_ID, "claim-id", GENERATION
         );
         stubNewOrder(new OrderProductValidationResult(PRODUCT_ID), Optional.of(claim));
         RuntimeException failure = new RuntimeException("connection lost after commit");
@@ -132,9 +128,9 @@ class CreateOrderUseCaseTest {
 
         assertThatThrownBy(() -> useCase.execute(USER_ID, request)).isSameAs(failure);
 
-        verify(admissionCoordinator).retainAfterUnknownFailure(Optional.of(claim), failure);
-        verify(admissionCoordinator, never()).releaseAfterBusinessFailure(any());
-        verify(admissionCoordinator, never()).completeAfterOrderCreated(any());
+        verify(admissionCoordinator).retainClaimAfterUnknownFailure(Optional.of(claim), failure);
+        verify(admissionCoordinator, never()).releaseClaimAfterBusinessFailure(any());
+        verify(admissionCoordinator, never()).completeClaimAfterOrderCreated(any());
     }
 
     private void stubNewOrder(
@@ -145,7 +141,7 @@ class CreateOrderUseCaseTest {
         when(transactionService.findIdempotentOrder(USER_ID, CHECKOUT_TOKEN, FINGERPRINT))
                 .thenReturn(null);
         when(preconditionChecker.checkNewOrder(USER_ID, request)).thenReturn(validation);
-        when(admissionCoordinator.claimIfRequired(
+        when(admissionCoordinator.claimAdmissionIfRequired(
                 request.admissionToken(), USER_ID, validation.admissionProductId(),
                 CHECKOUT_TOKEN, FINGERPRINT
         )).thenReturn(claim);

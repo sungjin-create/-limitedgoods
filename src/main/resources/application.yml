@@ -3,13 +3,10 @@ spring:
     name: limitedgoods
 
   datasource:
-    driver-class-name: org.postgresql.Driver
-
     hikari:
       maximum-pool-size: 10
 
   jpa:
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: validate
 
@@ -38,11 +35,15 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,prometheus
+        include: health,info
 
 queue:
   admission:
     bypass-enabled: false
-    active-window: ${QUEUE_ADMISSION_ACTIVE_WINDOW:50}
+    active-window: ${QUEUE_ADMISSION_ACTIVE_WINDOW:40}
   cleanup:
     delay-ms: 10000
+
+payment:
+  finalize:
+    delay-ms: 30000

@@ -47,9 +47,7 @@ public class SecurityConfig {
                         // 공개 API
                         .requestMatchers(
                                 "/api/user/signup",
-                                "/api/user/login",
-                                "/api/user/token/refresh",
-                                "/api/user/logout"
+                                "/api/user/login"
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/product/**").permitAll()
 
@@ -58,17 +56,15 @@ public class SecurityConfig {
 
                         // 로그인 사용자 API
                         .requestMatchers(
-                                "/api/cart/**",
                                 "/api/user/order/**",
                                 "/api/user/queue/**",
                                 "/api/user/info"
                         ).authenticated()
 
-                        //prometheus
+                        // 컨테이너와 운영자가 애플리케이션 상태를 확인하는 최소 endpoint
                         .requestMatchers(
                                 "/actuator/health",
-                                "/actuator/health/**",
-                                "/actuator/prometheus"
+                                "/actuator/health/**"
                         ).permitAll()
 
                         // 명시되지 않은 API는 기본 차단

@@ -23,7 +23,7 @@ public class ProductStatusPolicy {
                     DRAFT, EnumSet.of(PREPARING, SCHEDULED, ACTIVE),
                     PREPARING, EnumSet.of(SCHEDULED, ACTIVE, PAUSED, HIDDEN, ARCHIVED),
                     SCHEDULED, EnumSet.of(ACTIVE, PAUSED, HIDDEN, ARCHIVED),
-                    ACTIVE, EnumSet.of(PAUSED, HIDDEN, ARCHIVED),
+                    ACTIVE, EnumSet.of(SCHEDULED, PAUSED, HIDDEN, ARCHIVED),
                     PAUSED, EnumSet.of(PREPARING, SCHEDULED, ACTIVE, ARCHIVED),
                     HIDDEN, EnumSet.of(PREPARING, SCHEDULED, ACTIVE, ARCHIVED),
                     ARCHIVED, EnumSet.noneOf(ProductStatus.class)
@@ -46,7 +46,7 @@ public class ProductStatusPolicy {
         }
 
         if (nextStatus == ProductStatus.SCHEDULED) {
-            if (saleStartAt == null || saleEndAt == null) {
+            if (saleStartAt == null) {
                 throw new BusinessException(ErrorCode.HAS_NO_SALE_TIME);
             }
 
@@ -64,7 +64,7 @@ public class ProductStatusPolicy {
 
     public void validateTransition(ProductStatus currentStatus, ProductStatus nextStatus) {
         if (currentStatus == nextStatus) {
-            return; // 일정만 수정하는 경우
+            return;
         }
 
         Set<ProductStatus> allowed = ALLOWED_TRANSITIONS.get(currentStatus);

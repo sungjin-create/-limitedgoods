@@ -2,9 +2,6 @@ package com.limitedgoods.limitedgoods.order.application.payment;
 
 import com.limitedgoods.limitedgoods.common.exception.BusinessException;
 import com.limitedgoods.limitedgoods.common.exception.ErrorCode;
-import com.limitedgoods.limitedgoods.event.outbox.entity.OutboxEventType;
-import com.limitedgoods.limitedgoods.event.outbox.service.OutboxEventWriter;
-import com.limitedgoods.limitedgoods.event.payload.order.PaymentFailedEvent;
 import com.limitedgoods.limitedgoods.order.application.history.OrderStatusHistoryService;
 import com.limitedgoods.limitedgoods.order.application.mapper.OrderResponseMapper;
 import com.limitedgoods.limitedgoods.order.application.payment.dto.PaymentStartAction;
@@ -15,11 +12,9 @@ import com.limitedgoods.limitedgoods.order.entity.OrderStatus;
 import com.limitedgoods.limitedgoods.payment.dto.PaymentResult;
 import com.limitedgoods.limitedgoods.payment.entity.PaymentAttempt;
 import com.limitedgoods.limitedgoods.payment.entity.PaymentAttemptStatus;
-import com.limitedgoods.limitedgoods.payment.metrics.PaymentMetricEvent;
 import com.limitedgoods.limitedgoods.payment.repository.PaymentAttemptRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -33,8 +28,6 @@ public class PaymentCommandService {
     private final PaymentAttemptRepository paymentAttemptRepository;
     private final OrderStatusHistoryService historyService;
     private final OrderAccessService orderAccessService;
-    private final ApplicationEventPublisher eventPublisher;
-    private final OutboxEventWriter outboxEventWriter;
 
     @Transactional
     public PaymentStartResult preparePayment(
@@ -174,21 +167,8 @@ public class PaymentCommandService {
                     order.getUser()
             );
 
-            outboxEventWriter.append(
-                    OutboxEventType.PAYMENT_FAILED,
-                    "ORDER",
-                    order.getId(),
-                    new PaymentFailedEvent(
-                            order.getId(),
-                            userId,
-                            order.getCreatedAt(),
-                            order.getFailedAt(),
-                            reason
-                    )
-            );
         }
 
-        eventPublisher.publishEvent(PaymentMetricEvent.declined());
     }
 
     @Transactional

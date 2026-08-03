@@ -37,9 +37,4 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(userService.getUserInfo(email)));
     }
 
-    @GetMapping("/test")
-    public ResponseEntity<ApiResponse> test() {
-        return ResponseEntity.ok(ApiResponse.success("test"));
-    }
-
 }

@@ -97,9 +97,6 @@ public class Order {
         this.updatedAt = now;
         this.failReason = null;
         this.failedAt = null;
-        this.updatedAt = LocalDateTime.now();
-        this.failReason = null;
-        this.failedAt = null;
     }
 
     public void markExpired(LocalDateTime now) {
@@ -129,20 +126,6 @@ public class Order {
         this.updatedAt = now;
     }
 
-    public void retryCancel(){
-        validateCurrentStatus(OrderStatus.CANCEL_FAILED);
-
-        this.status = OrderStatus.CANCEL_REQUESTED;
-        this.cancelFailReason = null;
-        this.updatedAt = LocalDateTime.now();
-    }
-
-    public void markComplete() {
-        validateCurrentStatus(OrderStatus.PAID);
-        this.status = OrderStatus.COMPLETED;
-        this.updatedAt = LocalDateTime.now();
-    }
-
     private void validateCurrentStatus(OrderStatus expected) {
         if (this.status != expected) {
             throw new BusinessException(ErrorCode.INVALID_ORDER_STATUS, "현재 주문 상태 = " + this.status);
@@ -165,8 +148,7 @@ public class Order {
     }
 
     public void markRefunded() {
-        if (this.status != OrderStatus.CANCEL_REQUESTED
-                && this.status != OrderStatus.CANCEL_FAILED) {
+        if (this.status != OrderStatus.CANCEL_REQUESTED) {
             throw new BusinessException(ErrorCode.INVALID_ORDER_STATUS, "현재 주문 상태 = " + this.status);
         }
 

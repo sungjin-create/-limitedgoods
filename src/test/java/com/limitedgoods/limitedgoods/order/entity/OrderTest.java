@@ -65,15 +65,12 @@ class OrderTest {
     }
 
     @Test
-    void refundFailureCanBeRetriedAndCompleted() {
+    void approvedRefundCompletesCancellation() {
         Order order = newOrder();
         order.markPaymentPending(LocalDateTime.now());
         order.markPaymentApproved();
         order.markPaid();
         order.requestCancel();
-        order.markCancelFailed("provider unavailable");
-
-        order.retryCancel();
         order.markRefunded();
 
         assertThat(order.getStatus()).isEqualTo(OrderStatus.REFUNDED);

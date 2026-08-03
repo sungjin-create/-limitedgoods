@@ -9,11 +9,16 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.EnumSet;
+
 import static com.limitedgoods.limitedgoods.product.entity.ProductStatus.*;
 
 @Service
 @RequiredArgsConstructor
 public class ProductService {
+
+    private static final EnumSet<com.limitedgoods.limitedgoods.product.entity.ProductStatus> PUBLIC_STATUSES =
+            EnumSet.of(PREPARING, SCHEDULED, ACTIVE, PAUSED);
 
     private final ProductRepository productRepository;
 
@@ -25,7 +30,8 @@ public class ProductService {
 
     @Transactional(readOnly = true)
     public Page<ProductResponse> searchProduct(Pageable pageable, String keyword) {
-        return productRepository.searchByKeyword(pageable, keyword).map(this::toResponse);
+        return productRepository.searchByKeywordAndStatusIn(pageable, keyword, PUBLIC_STATUSES)
+                .map(this::toResponse);
     }
 
     private ProductResponse toResponse(Product product) {

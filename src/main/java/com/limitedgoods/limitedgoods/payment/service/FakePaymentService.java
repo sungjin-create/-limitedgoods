@@ -205,17 +205,6 @@ public class FakePaymentService implements PaymentService {
         };
     }
 
-    @Override
-    public RefundLookupResult lookupRefund(
-            String pgTransactionId,
-            String idempotencyKey
-    ) {
-        return refundResults.getOrDefault(
-                refundKey(pgTransactionId, idempotencyKey),
-                refundNotFound()
-        );
-    }
-
     private PaymentResult resolveExistingPayment(
             PaymentLookupResult result
     ) {
@@ -341,59 +330,6 @@ public class FakePaymentService implements PaymentService {
     }
 
     /*
-     * PROCESSING 시나리오를 나중에 APPROVED로 변경한다.
-     * 통합 테스트에서 스케줄러 복구를 검증할 때 사용한다.
-     */
-    public void approvePendingRefund(
-            String pgTransactionId,
-            String idempotencyKey
-    ) {
-        String key = refundKey(
-                pgTransactionId,
-                idempotencyKey
-        );
-
-        RefundRequestFingerprint request =
-                refundRequests.get(key);
-
-        if (request == null) {
-            throw new IllegalStateException(
-                    "환불 요청을 찾을 수 없습니다."
-            );
-        }
-
-        refundResults.put(
-                key,
-                new RefundLookupResult(
-                        RefundLookupStatus.APPROVED,
-                        UUID.randomUUID().toString(),
-                        request.amount(),
-                        LocalDateTime.now(),
-                        null,
-                        null
-                )
-        );
-    }
-
-    public void declinePendingRefund(
-            String pgTransactionId,
-            String idempotencyKey
-    ) {
-        String key = refundKey(
-                pgTransactionId,
-                idempotencyKey
-        );
-
-        refundResults.put(
-                key,
-                declinedRefund(
-                        "FAKE_REFUND_DECLINED",
-                        "PG에서 환불 요청을 거절했습니다."
-                )
-        );
-    }
-
-    /*
      * 테스트 시작 전에 환불 시나리오를 설정한다.
      */
     public void setRefundScenario(
@@ -440,17 +376,6 @@ public class FakePaymentService implements PaymentService {
     private PaymentLookupResult paymentNotFound() {
         return new PaymentLookupResult(
                 PaymentLookupStatus.NOT_FOUND,
-                null,
-                0,
-                null,
-                null,
-                null
-        );
-    }
-
-    private RefundLookupResult refundNotFound() {
-        return new RefundLookupResult(
-                RefundLookupStatus.NOT_FOUND,
                 null,
                 0,
                 null,

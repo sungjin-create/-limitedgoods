@@ -61,15 +61,6 @@ public class RefundAttempt {
     @Column(name = "failure_reason", length = 500)
     private String failureReason;
 
-    @Column(name = "reconcile_count", nullable = false)
-    private int reconcileCount;
-
-    @Column(name = "next_reconcile_at")
-    private LocalDateTime nextReconcileAt;
-
-    @Column(name = "manual_review_required", nullable = false)
-    private boolean manualReviewRequired;
-
     @Column(name = "requested_at", nullable = false)
     private LocalDateTime requestedAt;
 
@@ -94,9 +85,6 @@ public class RefundAttempt {
         attempt.amount = amount;
         attempt.status = RefundAttemptStatus.PROCESSING;
         attempt.pgTransactionId = paymentAttempt.getPgTransactionId();
-        attempt.reconcileCount = 0;
-        attempt.nextReconcileAt = now.plusSeconds(10);
-        attempt.manualReviewRequired = false;
         attempt.requestedAt = now;
         attempt.updatedAt = now;
 
@@ -105,10 +93,10 @@ public class RefundAttempt {
 
     public void approve(RefundResult result) {
         if (result.refundedAmount() != amount) {
-            markManualReview(
-                    "REFUND_AMOUNT_MISMATCH",
-                    "요청 환불액과 실제 환불액이 일치하지 않습니다."
-            );
+            status = RefundAttemptStatus.UNKNOWN;
+            failureCode = "REFUND_AMOUNT_MISMATCH";
+            failureReason = "요청 환불액과 실제 환불액이 일치하지 않습니다.";
+            updatedAt = LocalDateTime.now();
             return;
         }
 
@@ -117,7 +105,6 @@ public class RefundAttempt {
         refundedAt = result.refundedAt();
         failureCode = null;
         failureReason = null;
-        nextReconcileAt = null;
         updatedAt = LocalDateTime.now();
     }
 
@@ -125,29 +112,12 @@ public class RefundAttempt {
         status = RefundAttemptStatus.DECLINED;
         failureCode = code;
         failureReason = reason;
-        nextReconcileAt = null;
         updatedAt = LocalDateTime.now();
     }
 
     public void markUnknown(String reason) {
         status = RefundAttemptStatus.UNKNOWN;
         failureReason = reason;
-        reconcileCount++;
-        nextReconcileAt = LocalDateTime.now()
-                .plusSeconds(backoffSeconds());
         updatedAt = LocalDateTime.now();
-    }
-
-    public void markManualReview(String code, String reason) {
-        status = RefundAttemptStatus.UNKNOWN;
-        failureCode = code;
-        failureReason = reason;
-        manualReviewRequired = true;
-        nextReconcileAt = null;
-        updatedAt = LocalDateTime.now();
-    }
-
-    private long backoffSeconds() {
-        return Math.min(300, 10L * (1L << Math.min(reconcileCount, 5)));
     }
 }

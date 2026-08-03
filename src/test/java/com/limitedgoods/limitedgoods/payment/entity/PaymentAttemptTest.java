@@ -33,6 +33,7 @@ class PaymentAttemptTest {
 
         assertThat(attempt.getStatus()).isEqualTo(PaymentAttemptStatus.APPROVED);
         assertThat(attempt.getPgTransactionId()).isEqualTo("pg-transaction");
+        assertThat(attempt.getApprovedAmount()).isEqualTo(10_000L);
         assertThat(attempt.getApprovedAt()).isEqualTo(approvedAt);
     }
 

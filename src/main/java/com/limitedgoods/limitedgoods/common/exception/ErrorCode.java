@@ -18,6 +18,16 @@ public enum ErrorCode {
             "USER_002",
             "이미 사용 중인 이메일입니다."
     ),
+    PASSWORD_CONFIRMATION_MISMATCH(
+            HttpStatus.BAD_REQUEST,
+            "USER_003",
+            "비밀번호와 비밀번호 확인이 일치하지 않습니다."
+    ),
+    USER_SUSPENDED(
+            HttpStatus.FORBIDDEN,
+            "USER_004",
+            "정지된 사용자입니다."
+    ),
 
     INVALID_INPUT(
             HttpStatus.BAD_REQUEST,
@@ -199,22 +209,6 @@ public enum ErrorCode {
             "환불 결과를 확인하고 있습니다."
     ),
 
-    CART_NOT_FOUND(
-            HttpStatus.BAD_REQUEST,
-            "CART_001",
-            "CART를 찾을 수 없습니다."
-    ),
-    CART_ITEM_NOT_FOUND(
-            HttpStatus.BAD_REQUEST,
-            "CART_ITEM_001",
-            "ITEM을 찾을 수 없습니다."
-    ),
-    CART_ITEM_ALREADY_ADD(
-            HttpStatus.BAD_REQUEST,
-            "CART_ITEM_002",
-            "ITEM이 이미 장바구니에 담겨있습니다."
-    ),
-
     HAS_NO_CHECKOUT_TOKEN(
             HttpStatus.BAD_REQUEST,
             "CHECKOUT_TOKEN_001",
@@ -262,18 +256,6 @@ public enum ErrorCode {
             "대기열 상품 상태를 확인할 수 없습니다. 잠시 후 다시 시도해 주세요."
     ),
 
-    EMAIL_DELIVERY_NOT_FOUND(
-            HttpStatus.NOT_FOUND,
-            "EMAIL_001",
-            "이메일 발송 정보를 찾을 수 없습니다."
-    ),
-
-    EMAIL_DELIVERY_NOT_DEAD(
-            HttpStatus.CONFLICT,
-            "EMAIL_002",
-            "DEAD 상태의 이메일만 다시 처리할 수 있습니다."
-    ),
-
     UNAUTHORIZED(
             HttpStatus.UNAUTHORIZED,
             "AUTH_001",
@@ -315,16 +297,6 @@ public enum ErrorCode {
             HttpStatus.NOT_FOUND,
             "REFUND_001",
             "환불 시도를 찾을 수 없습니다."
-    ),
-    REFUND_RECONCILE_NOT_ALLOWED(
-            HttpStatus.CONFLICT,
-            "REFUND_002",
-            "현재 상태에서는 환불 결과를 재조회할 수 없습니다."
-    ),
-    REFUND_RETRY_NOT_ALLOWED(
-            HttpStatus.CONFLICT,
-            "REFUND_003",
-            "확정적으로 실패한 환불만 다시 요청할 수 있습니다."
     ),
     ;
 

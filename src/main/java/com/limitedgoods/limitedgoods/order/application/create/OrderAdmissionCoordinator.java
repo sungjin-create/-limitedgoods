@@ -66,29 +66,17 @@ public class OrderAdmissionCoordinator {
     /**
      * 시스템 오류인 경우 PROCESSING 상태를 유지한다.
      */
-    public void retainClaimAfterUnknownFailure(
-            Optional<OrderAdmissionClaim> claim,
-            Throwable throwable
-    ) {
+    public void retainClaimAfterUnknownFailure(Optional<OrderAdmissionClaim> claim, Throwable throwable) {
         claim.ifPresent(value ->
                 log.error(
                         "[주문 생성 결과 불명확] 입장 토큰 선점을 유지합니다. "
                                 + "userId={}, productId={}, claimId={}",
-                        value.userId(),
-                        value.productId(),
-                        value.claimId(),
-                        throwable
-                )
+                        value.userId(), value.productId(), value.claimId(), throwable)
         );
     }
 
-    private String createClaimId(
-            String checkoutToken,
-            String requestFingerprint
-    ) {
-        return checkoutToken
-                + ":"
-                + requestFingerprint;
+    private String createClaimId(String checkoutToken, String requestFingerprint) {
+        return checkoutToken + ":" + requestFingerprint;
     }
 
     private void releaseClaimBestEffort(OrderAdmissionClaim claim) {
@@ -125,9 +113,7 @@ public class OrderAdmissionCoordinator {
         } catch (Exception exception) {
             log.error(
                     "[주문 성공 후 대기열 제거 실패] userId={}, productId={}",
-                    claim.userId(),
-                    claim.productId(),
-                    exception
+                    claim.userId(), claim.productId(), exception
             );
 
             // 현재 적용한 정책:
@@ -148,17 +134,13 @@ public class OrderAdmissionCoordinator {
             if (!consumed) {
                 log.debug(
                         "[입장 토큰 소비 확정 실패] userId={}, productId={}",
-                        claim.userId(),
-                        claim.productId()
-                );
+                        claim.userId(), claim.productId());
+
             }
         } catch (Exception exception) {
             log.error(
                     "[입장 토큰 소비 후처리 실패] userId={}, productId={}",
-                    claim.userId(),
-                    claim.productId(),
-                    exception
-            );
+                    claim.userId(), claim.productId(), exception);
         }
     }
 

@@ -46,12 +46,25 @@ public class JwtFilter extends OncePerRequestFilter {
 
             Long userId = claims.get("userId", Long.class);
             String email = claims.getSubject();
-            String role = claims.get("role", String.class);
+            String claimedRole = claims.get("role", String.class);
+            Object versionClaim = claims.get("ver");
 
-            CustomUserDetails userDetails = new CustomUserDetails(userId, email, role);
+            if (!(versionClaim instanceof Number version)) {
+                throw new IllegalArgumentException("Missing token version");
+            }
+
+            User user = userRepository.findById(userId)
+                    .filter(candidate -> candidate.getStatus() == UserStatus.ACTIVE)
+                    .filter(candidate -> candidate.getEmail().equals(email))
+                    .filter(candidate -> candidate.getRole().name().equals(claimedRole))
+                    .filter(candidate -> candidate.getTokenVersion() == version.longValue())
+                    .orElseThrow(() -> new IllegalArgumentException("Invalidated user token"));
+
+            CustomUserDetails userDetails = new CustomUserDetails(
+                    user.getId(), user.getEmail(), user.getRole().name());
 
             List<GrantedAuthority> authorities = List.of(
-                    new SimpleGrantedAuthority("ROLE_" + role)
+                    new SimpleGrantedAuthority("ROLE_" + user.getRole().name())
             );
 
             UsernamePasswordAuthenticationToken authentication =

@@ -92,10 +92,16 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query("""
     select p
     from Product p
-    where upper(p.name) like upper(concat('%', :keyword, '%'))
+    where p.status in :statuses
+      and (
+        upper(p.name) like upper(concat('%', :keyword, '%'))
         or upper(p.description) like upper(concat('%', :keyword, '%'))
+      )
     """)
-    Page<Product> searchByKeyword(Pageable pageable, @Param("keyword") String keyword);
+    Page<Product> searchByKeywordAndStatusIn(
+            Pageable pageable,
+            @Param("keyword") String keyword,
+            @Param("statuses") Collection<ProductStatus> statuses);
 
     @Query("""
     select case when count(p) > 0 then true else false end
@@ -112,21 +118,6 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     """)
     Optional<Integer> findStockById(@Param("productId") Long productId
     );
-
-    @Query("""
-    select count(p)
-    from Product p
-    where p.stock <= 0
-    """)
-    long countSoldOutProducts();
-
-    @Query("""
-    select count(p)
-    from Product p
-    where p.stock <= :threshold
-        and p.stock > 0
-    """)
-    long countLowStockProducts(@Param("threshold") int threshold);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
