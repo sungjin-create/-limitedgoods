@@ -266,6 +266,11 @@ public enum ErrorCode {
             "AUTH_002",
             "접근 권한이 없습니다."
     ),
+    INVALID_REFRESH_TOKEN(
+            HttpStatus.UNAUTHORIZED,
+            "AUTH_003",
+            "Refresh Token이 없거나 만료되었습니다."
+    ),
 
     VALIDATION_ERROR(
             HttpStatus.BAD_REQUEST,

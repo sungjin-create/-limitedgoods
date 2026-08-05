@@ -25,6 +25,16 @@ server:
     threads:
       max: 200
 
+app:
+  auth:
+    refresh-token:
+      expiration: ${REFRESH_TOKEN_EXPIRATION:7d}
+    refresh-cookie:
+      name: refresh_token
+      same-site: Lax
+      path: /api/user
+      max-age: 7d
+
 jwt:
   access-expiration: 15m
 

@@ -2,7 +2,11 @@ package com.limitedgoods.limitedgoods.user.service;
 
 import com.limitedgoods.limitedgoods.common.exception.BusinessException;
 import com.limitedgoods.limitedgoods.common.exception.ErrorCode;
+import com.limitedgoods.limitedgoods.security.auth.IssuedRefreshToken;
+import com.limitedgoods.limitedgoods.security.auth.RefreshTokenService;
 import com.limitedgoods.limitedgoods.security.jwt.JwtUtil;
+import com.limitedgoods.limitedgoods.user.dto.response.LoginResult;
+import com.limitedgoods.limitedgoods.user.dto.response.RefreshResult;
 import com.limitedgoods.limitedgoods.user.dto.response.UserInfoResponse;
 import com.limitedgoods.limitedgoods.user.dto.request.UserLoginRequest;
 import com.limitedgoods.limitedgoods.user.dto.response.UserLoginResponse;
@@ -27,6 +31,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final RefreshTokenService refreshTokenService;
 
     public String signUpUsers(UserSignUpRequest userSignUpRequest) {
         String usersName = userSignUpRequest.name();
@@ -74,8 +79,7 @@ public class UserService {
         }
     }
 
-    @Transactional(readOnly = true)
-    public UserLoginResponse loginUsers(UserLoginRequest userLoginRequest) {
+    public LoginResult loginUsers(UserLoginRequest userLoginRequest) {
         String email = userLoginRequest.email();
         String password = userLoginRequest.password();
 
@@ -94,13 +98,31 @@ public class UserService {
             throw new BusinessException(ErrorCode.INVALID_INPUT);
         }
 
-        String accessToken = jwtUtil.generateAccessToken(
-                user.getId(),
-                user.getEmail(),
-                user.getRole(),
-                user.getTokenVersion()
+        String accessToken = createAccessToken(user);
+
+        IssuedRefreshToken refreshToken =
+                refreshTokenService.issue(user);
+
+        return new LoginResult(
+                accessToken,
+                refreshToken.token()
         );
-        return new UserLoginResponse(accessToken);
+    }
+
+    public RefreshResult refreshAccessToken(String rawRefreshToken) {
+        IssuedRefreshToken rotated =
+                refreshTokenService.rotate(rawRefreshToken);
+
+        String accessToken = createAccessToken(rotated.user());
+
+        return new RefreshResult(
+                accessToken,
+                rotated.token()
+        );
+    }
+
+    public void logout(String rawRefreshToken) {
+        refreshTokenService.revoke(rawRefreshToken);
     }
 
     public UserInfoResponse getUserInfo(String email) {
@@ -113,6 +135,15 @@ public class UserService {
                 user.getEmail(),
                 user.getRole(),
                 user.getCreatedAt()
+        );
+    }
+
+    private String createAccessToken(User user) {
+        return jwtUtil.generateAccessToken(
+                user.getId(),
+                user.getEmail(),
+                user.getRole(),
+                user.getTokenVersion()
         );
     }
 }
