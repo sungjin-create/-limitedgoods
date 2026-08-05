@@ -47,7 +47,9 @@ public class SecurityConfig {
                         // 공개 API
                         .requestMatchers(
                                 "/api/user/signup",
-                                "/api/user/login"
+                                "/api/user/login",
+                                "/api/user/refresh",
+                                "/api/user/logout"
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/product/**").permitAll()
 
