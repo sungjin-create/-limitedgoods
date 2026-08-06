@@ -3,6 +3,7 @@ package com.limitedgoods.limitedgoods.order.application.create;
 import com.limitedgoods.limitedgoods.common.exception.BusinessException;
 import com.limitedgoods.limitedgoods.common.exception.ErrorCode;
 import com.limitedgoods.limitedgoods.order.application.create.dto.OrderAdmissionClaim;
+import com.limitedgoods.limitedgoods.queue.config.QueueAdmissionProperties;
 import com.limitedgoods.limitedgoods.queue.service.AdmissionTokenService;
 import com.limitedgoods.limitedgoods.queue.service.QueueService;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,7 +31,11 @@ class OrderAdmissionCoordinatorTest {
 
     @BeforeEach
     void setUp() {
-        coordinator = new OrderAdmissionCoordinator(admissionTokenService, queueService);
+        coordinator = new OrderAdmissionCoordinator(
+                admissionTokenService,
+                queueService,
+                admissionProperties(false)
+        );
     }
 
     @Test
@@ -134,6 +139,12 @@ class OrderAdmissionCoordinatorTest {
 
     private OrderAdmissionClaim claim() {
         return new OrderAdmissionClaim("token", 1L, 10L, "claim", GENERATION);
+    }
+
+    private QueueAdmissionProperties admissionProperties(boolean bypassEnabled) {
+        QueueAdmissionProperties properties = new QueueAdmissionProperties();
+        properties.setBypassEnabled(bypassEnabled);
+        return properties;
     }
 
     private void assertBusinessError(Runnable action, ErrorCode expected) {
