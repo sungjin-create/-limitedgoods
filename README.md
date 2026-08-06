@@ -1,80 +1,86 @@
 # Limited Goods Core
 
-한정 상품 주문에서 발생하는 대기열, 재고 경합, 주문·결제 멱등성과 장애 상태를 학습하고 검증하는 Spring Boot 프로젝트입니다.
+한정 상품 주문이 한꺼번에 들어올 때 **데이터 정합성을 지키면서 DB 진입 경합을 줄이는 방법**을 검증하는 Spring Boot 프로젝트입니다.
 
-## Core 범위
+## 핵심 문제
 
-- JWT 회원가입·로그인
-- 일반/한정 상품과 판매 시작 시각
-- Redis 상품별 대기열과 admission token
-- PostgreSQL 조건부 재고 차감
-- 사용자·상품별 누적 구매 제한
-- `checkoutToken` 기반 주문 생성 멱등성
-- 5분 주문 예약과 미결제 주문 만료
-- `Idempotency-Key` 기반 결제 시도
-- PG 승인과 내부 주문 확정 분리
-- 결제 거절·timeout·결과 불명 상태
-- 정상 전액 환불과 재고 복구
-- 관리자 상품 등록, 재고 조정, 타입·판매 시작 설정
-- PostgreSQL·Redis Testcontainers 및 k6 시나리오
+- 재고보다 많은 동시 주문이 들어와도 초과 판매하지 않아야 합니다.
+- 같은 주문 재시도가 재고를 중복 차감하면 안 됩니다.
+- 사용자별 구매 제한을 여러 요청으로 우회할 수 없어야 합니다.
+- 품절될 요청까지 모두 DB transaction에 진입하지 않아야 합니다.
 
-Monitoring, Kafka/Outbox, 이메일·분석 projection, 환불 reconciliation과 관리자 환불 운영 기능은 Core에 포함하지 않습니다. 상세 범위는 [PROJECT_SCOPE](./PROJECT_SCOPE.md)를 참고하세요.
+## 해결 방식
 
-## 기술 스택
+### PostgreSQL: 최종 정합성
 
-- Java 17, Spring Boot 3.5.6
-- Spring Web, Security, Validation, Data JPA/JDBC, Retry
-- PostgreSQL 16, Flyway
-- Spring Data Redis
-- JUnit 5, Testcontainers, k6
+- `stock >= quantity` 조건부 update
+- 구매 counter의 `ON CONFLICT ... WHERE`
+- 사용자와 `checkoutToken` unique 제약
+- 다상품 주문의 상품 ID 정렬로 lock 순서 통일
 
-## 로컬 실행
+### Redis: 진입 제어
 
-Java 17과 Docker가 필요합니다. 예제 파일을 복사한 뒤 로컬 값을 설정합니다.
+- 상품별 Sorted Set 대기열
+- active window 안의 사용자에게 admission token 발급
+- 주문 시작 시 claim, 성공 시 consume, 실패 시 release
+- 품절 시 generation 증가로 이전 token 무효화
 
-```powershell
-Copy-Item .env.example .env
-```
+대기열 통과는 구매 성공을 보장하지 않습니다. 최종 판매 여부는 항상 PostgreSQL transaction이 결정합니다.
 
-```powershell
-$env:POSTGRES_DB = "limitedgoods_flyway"
-docker compose up -d
-```
+## 핵심 검증 결과
 
-| 대상 | 기본 주소 |
+재고 100개인 상품에 사용자 5,000명이 10초 동안 접근하도록 Queue와 Direct를 같은 조건에서 비교했습니다. 두 모드 모두 5,000명을 완료하고 dropped iteration이 없었던 2차 실행을 대표값으로 사용했습니다.
+
+| 지표 | Direct | Queue |
+| --- | ---: | ---: |
+| 주문 API 진입 | 5,000건 | 104건 |
+| 생성된 주문 | 100건 | 100건 |
+| 예상하지 않은 오류 | 0건 | 0건 |
+
+Queue 적용 후 준비된 재고만큼만 주문되는 정합성을 유지하면서 주문 API와 DB transaction 진입 후보를 97.92% 줄였습니다. 자세한 조건과 해석은 [Core 검증 결과](./docs/report/core-test-result.md)에 정리했습니다.
+
+Queue의 전체 흐름 p95는 Direct보다 길었습니다. 따라서 Queue를 응답시간 개선 수단으로 주장하지 않고, 트래픽이 집중되는 LIMITED 상품의 DB 보호를 위한 선택적 admission control로 사용합니다.
+
+## 남긴 테스트
+
+| 구분 | 검증 내용 |
 | --- | --- |
-| API | `http://localhost:8080` |
-| Health | `http://localhost:9091/actuator/health` |
-| PostgreSQL | `localhost:5432`, DB `limitedgoods_core` |
-| Redis | `localhost:6379` |
-
-Flyway는 빈 DB에 `V1__core_baseline.sql`을 적용합니다. 과거 migration이 적용된 개발 DB는 기존 볼륨을 보존할 필요가 없을 때만 새 볼륨으로 초기화합니다.
-
-## 테스트
+| 단위 테스트 | 주문 사전 조건, admission 조정, 상품 판매 조건, queue snapshot·정리 |
+| PostgreSQL 통합 테스트 | 재고, 주문 멱등성, 활성 주문, deadlock, 구매 한도 경합 |
+| Redis 통합 테스트 | queue 유지보수, token 상태 전이, 품절 generation |
+| k6 | smoke, 핫 상품 주문, queue/direct 비교 |
 
 ```powershell
 .\gradlew.bat test
 .\gradlew.bat integrationTest
 ```
 
-`integrationTest`는 Docker에서 PostgreSQL 16과 Redis 7을 실행합니다. Docker가 없거나 중지돼 있으면 통과한 것으로 간주하지 않습니다.
+## 로컬 실행
 
-부하 테스트는 [k6 실행 문서](./k6/README.md)를 참고하세요.
+```powershell
+Copy-Item .env.example .env
+docker compose up -d
+.\gradlew.bat bootRun --args='--spring.profiles.active=local'
+```
+
+| 대상 | 주소 |
+| --- | --- |
+| API | `http://127.0.0.1:8080` |
+| Health | `http://localhost:9091/actuator/health` |
+| PostgreSQL | `localhost:5432`, DB `limitedgoods_core` |
+| Redis | `localhost:6379` |
+
+## 보조 구현
+
+JWT/Refresh Token 인증, 결제 멱등성, 주문 만료, 전액 환불과 관리자 상품 API도 동작합니다. 이 기능들은 대기열·동시성 실험을 수행하기 위한 애플리케이션 흐름으로 유지하며, Core 성과의 중심으로 주장하지 않습니다.
 
 ## 문서
 
-- [문서 인덱스](./docs/README.md)
+- [프로젝트 범위](./PROJECT_SCOPE.md)
 - [아키텍처](./docs/architecture.md)
-- [API](./docs/api-reference.md)
-- [도메인 정책](./docs/policies/README.md)
+- [Core 검증 결과](./docs/report/core-test-result.md)
+- [핵심 테스트 계획](./docs/report/core-test-completion-plan.md)
+- [k6 대기열 비교](./k6/README.md)
+- [API 참고](./docs/api-reference.md)
+- [세부 정책](./docs/policies/README.md)
 - [설계 결정](./docs/decisions/README.md)
-
-## 현재 제한과 후속 작업
-
-- 통계는 내부 Worker가 갱신하므로 비동기 처리 지연이 존재합니다.
-- 관리자 계정 bootstrap 기능이 없어 로컬 DB에서 역할을 변경해야 합니다.
-- 대기 예상 시간은 `position × 2초`인 단순 추정값입니다.
-- 대기열 이탈자의 Sorted Set entry를 자동 정리하는 정책이 아직 없습니다.
-- 상품 검색은 일반 목록과 달리 비공개·보관 상태를 거르지 않습니다.
-- 실제 PG/메일 사업자 연동 시 timeout, idempotency, webhook 검증 정책을 추가로 검증해야 합니다.
-- 운영용 secret은 소스 기본값이 아니라 secret manager 또는 배포 환경 변수로 주입해야 합니다.

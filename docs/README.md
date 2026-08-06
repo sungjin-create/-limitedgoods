@@ -1,22 +1,27 @@
 # Limited Goods 문서
 
-이 디렉터리는 현재 코드가 실제로 수행하는 동작을 기준으로 작성합니다. 계획 또는 미구현 기능은 구현된 기능과 구분해 표시합니다.
+문서는 핵심 주제와 구현 참고 자료를 분리합니다.
 
-## 문서 목록
+## 먼저 읽을 문서
 
-| 문서 | 내용 |
-| --- | --- |
-| [아키텍처](./architecture.md) | 주요 컴포넌트와 주문·결제·Outbox 흐름 |
-| [API 요약](./api-reference.md) | 사용자·관리자 endpoint와 필수 헤더 |
-| [통계와 모니터링](./analytics-and-monitoring.md) | projection, 날짜 기준, Prometheus/Grafana |
-| [이벤트 처리 모드](./event-delivery-modes.md) | internal-worker의 실행 방식과 장애 처리 |
-| [Worker 타임라인](./worker-timeline.md) | Outbox와 이메일 Worker의 claim·lease·retry 흐름 |
-| [도메인 정책](./policies/README.md) | 대기열·주문·결제·상품 정책 |
+1. [프로젝트 범위](../PROJECT_SCOPE.md)
+2. [아키텍처](./architecture.md)
+3. [Core 대기열·동시성 검증 결과](./report/core-test-result.md)
+4. [핵심 테스트 계획](./report/core-test-completion-plan.md)
+5. [k6 대기열 비교 가이드](../k6/README.md)
 
-## 문서 갱신 규칙
+## 설계 근거
 
-- 상태명, endpoint, 제한값은 코드의 값과 동일하게 유지합니다.
-- 화면 문구와 통계 집계 기준을 함께 변경합니다.
-- 새 DB 변경은 기존 migration을 수정하지 않고 새 Flyway migration으로 추가합니다.
-- 미구현 기능을 현재 동작처럼 서술하지 않습니다.
-- 운영 기본값과 개발 기본값을 구분합니다.
+- [PostgreSQL을 최종 기준으로 사용](./decisions/core/0001-postgresql-source-of-truth.md)
+- [재고와 구매 제한 원자 예약](./decisions/core/0002-atomic-order-reservation.md)
+- [주문 생성 멱등성](./decisions/core/0003-idempotent-order-creation.md)
+- [Redis admission queue](./decisions/core/0004-redis-admission-queue.md)
+- [실제 PostgreSQL·Redis 테스트](./decisions/core/0006-test-real-infrastructure.md)
+
+## 구현 참고
+
+- [API](./api-reference.md)
+- [도메인 정책](./policies/README.md)
+- [나머지 설계 결정](./decisions/README.md)
+
+결제·환불·인증 문서는 현재 구현을 이해하기 위한 참고 자료이며 Core 성과의 중심 문서는 아닙니다.
