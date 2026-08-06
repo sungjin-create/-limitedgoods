@@ -1,6 +1,9 @@
 HELP.md
 .gradle
 .env
+.env.loadtest
+!.env.example
+!.env.loadtest.example
 build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
@@ -39,4 +42,7 @@ out/
 
 ### logs ###
 /logs/
+/k6/results/
 .env
+
+/k6/lib/access-tokens.json
