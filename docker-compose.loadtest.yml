@@ -1,0 +1,72 @@
+name: limitedgoods-loadtest
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    command:
+      - postgres
+      - -c
+      - max_connections=300
+    environment:
+      POSTGRES_DB: ${LOADTEST_POSTGRES_DB:-limitedgoods_loadtest}
+      POSTGRES_USER: ${LOADTEST_POSTGRES_USER:-loadtest}
+      POSTGRES_PASSWORD: ${LOADTEST_POSTGRES_PASSWORD:-loadtest-only}
+    ports:
+      - "${LOADTEST_POSTGRES_PORT:-15432}:5432"
+    volumes:
+      - loadtest-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U ${LOADTEST_POSTGRES_USER:-loadtest} -d ${LOADTEST_POSTGRES_DB:-limitedgoods_loadtest}
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --notify-keyspace-events KEA
+    ports:
+      - "${LOADTEST_REDIS_PORT:-16379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: loadtest
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${LOADTEST_POSTGRES_DB:-limitedgoods_loadtest}
+      SPRING_DATASOURCE_USERNAME: ${LOADTEST_POSTGRES_USER:-loadtest}
+      SPRING_DATASOURCE_PASSWORD: ${LOADTEST_POSTGRES_PASSWORD:-loadtest-only}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      JWT_SECRET_BASE64: ${LOADTEST_JWT_SECRET_BASE64:?Set LOADTEST_JWT_SECRET_BASE64 in .env.loadtest}
+      JWT_ACCESS_EXPIRATION: ${LOADTEST_JWT_ACCESS_EXPIRATION:-30m}
+      LOADTEST_DB_POOL_SIZE: ${LOADTEST_DB_POOL_SIZE:-10}
+      LOADTEST_TOMCAT_MAX_THREADS: ${LOADTEST_TOMCAT_MAX_THREADS:-200}
+      QUEUE_ADMISSION_BYPASS_ENABLED: ${QUEUE_ADMISSION_BYPASS_ENABLED:-false}
+      QUEUE_ADMISSION_ACTIVE_WINDOW: ${QUEUE_ADMISSION_ACTIVE_WINDOW:-40}
+    ports:
+      - "${LOADTEST_APP_PORT:-18080}:8080"
+      - "${LOADTEST_MANAGEMENT_PORT:-19091}:9091"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -qO- http://localhost:9091/actuator/health | grep -q '"status":"UP"'
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+volumes:
+  loadtest-postgres-data:

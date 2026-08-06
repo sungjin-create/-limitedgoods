@@ -1,0 +1,4 @@
+services:
+  app:
+    environment:
+      QUEUE_ADMISSION_BYPASS_ENABLED: "true"
