@@ -15,9 +15,7 @@ public class NotificationQueryService {
     private final NotificationRepository notificationRepository;
 
     @Transactional(readOnly = true)
-    public List<NotificationResponse> findMyNotifications(
-            Long userId
-    ) {
+    public List<NotificationResponse> findMyNotifications(Long userId) {
         return notificationRepository
                 .findTop50ByUserIdOrderByIdDesc(userId)
                 .stream()
@@ -27,8 +25,6 @@ public class NotificationQueryService {
 
     @Transactional(readOnly = true)
     public long countUnread(Long userId) {
-        return notificationRepository.countByUserIdAndReadFalse(
-                userId
-        );
+        return notificationRepository.countByUserIdAndReadFalse(userId);
     }
 }

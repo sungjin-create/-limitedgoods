@@ -79,5 +79,5 @@ payment:
     delay-ms: 30000
 
 outbox:
-  relay:
+  publish:
     delay-ms: 500

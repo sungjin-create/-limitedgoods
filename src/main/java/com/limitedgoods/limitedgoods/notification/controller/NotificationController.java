@@ -25,9 +25,7 @@ public class NotificationController {
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
         return ResponseEntity.ok(ApiResponse.success(
-                queryService.findMyNotifications(userDetails.getUserId())
-                )
-        );
+                queryService.findMyNotifications(userDetails.getUserId())));
     }
 
     @GetMapping("/unread-count")
@@ -35,9 +33,7 @@ public class NotificationController {
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
         return ResponseEntity.ok(ApiResponse.success(
-                        queryService.countUnread(userDetails.getUserId())
-                )
-        );
+                queryService.countUnread(userDetails.getUserId())));
     }
 
     @PatchMapping("/{notificationId}/read")

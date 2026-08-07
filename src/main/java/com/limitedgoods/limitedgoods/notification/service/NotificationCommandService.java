@@ -15,15 +15,10 @@ public class NotificationCommandService {
     private final NotificationRepository notificationRepository;
 
     @Transactional
-    public void markAsRead(
-            Long userId,
-            Long notificationId
-    ) {
+    public void markAsRead(Long userId, Long notificationId) {
         Notification notification = notificationRepository
                 .findByIdAndUserId(notificationId, userId)
-                .orElseThrow(() ->
-                        new BusinessException(ErrorCode.NOTIFICATION_NOT_FOUND)
-                );
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOTIFICATION_NOT_FOUND));
 
         notification.markAsRead();
     }

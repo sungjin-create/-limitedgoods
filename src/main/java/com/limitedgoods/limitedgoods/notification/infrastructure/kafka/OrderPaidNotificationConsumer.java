@@ -32,21 +32,13 @@ public class OrderPaidNotificationConsumer {
 
         JsonNode envelope = objectMapper.readTree(message);
 
-        if (!"order.paid.v1".equals(
-                envelope.path("eventType").asText()
-        )) {
+        if (!"order.paid.v1".equals(envelope.path("eventType").asText())) {
             return;
         }
 
-        UUID eventId = UUID.fromString(
-                envelope.path("eventId").asText()
-        );
+        UUID eventId = UUID.fromString(envelope.path("eventId").asText());
 
-        boolean firstProcessing =
-                processedEventRepository.tryInsert(
-                        CONSUMER_NAME,
-                        eventId
-                );
+        boolean firstProcessing = processedEventRepository.tryInsert(CONSUMER_NAME, eventId);
 
         if (!firstProcessing) {
             return;
@@ -57,11 +49,7 @@ public class OrderPaidNotificationConsumer {
         Long userId = data.path("userId").asLong();
         Long orderId = data.path("orderId").asLong();
 
-        Notification notification = Notification.orderPaid(
-                eventId,
-                userId,
-                orderId
-        );
+        Notification notification = Notification.orderPaid(eventId, userId, orderId);
 
         notificationRepository.save(notification);
     }
