@@ -1,11 +1,13 @@
-package com.limitedgoods.limitedgoods.common.messaging.outbox.publisher;
+package com.limitedgoods.limitedgoods.messaging.outbox.infrastructure.kafka;
 
-import com.limitedgoods.limitedgoods.common.messaging.outbox.config.OutboxPublishProperties;
-import com.limitedgoods.limitedgoods.common.messaging.outbox.dto.OutboxEvent;
-import com.limitedgoods.limitedgoods.common.messaging.outbox.dto.OutboxRetryDecision;
-import com.limitedgoods.limitedgoods.common.messaging.outbox.policy.OutboxRetryPolicy;
-import com.limitedgoods.limitedgoods.common.messaging.outbox.repository.OutboxJdbcRepository;
+import com.limitedgoods.limitedgoods.messaging.outbox.application.OutboxEventDispatcher;
+import com.limitedgoods.limitedgoods.messaging.outbox.application.OutboxRetryPolicy;
+import com.limitedgoods.limitedgoods.messaging.outbox.infrastructure.config.OutboxProperties;
+import com.limitedgoods.limitedgoods.messaging.outbox.infrastructure.jdbc.JdbcOutboxRepository;
+import com.limitedgoods.limitedgoods.messaging.outbox.model.OutboxRecord;
+import com.limitedgoods.limitedgoods.messaging.outbox.model.OutboxRetryDecision;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Profile;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,37 +17,38 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+@Profile("kafka")
 @Service
 @RequiredArgsConstructor
-public class OutboxPublisher {
+public class KafkaOutboxEventDispatcher implements OutboxEventDispatcher {
 
-    private final OutboxJdbcRepository outboxRepository;
+    private final JdbcOutboxRepository outboxRepository;
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final OutboxRetryPolicy outboxRetryPolicy;
-    private final OutboxPublishProperties outboxPublishProperties;
+    private final OutboxProperties outboxProperties;
 
+    @Override
     @Transactional
-    public void outboxPublishBatch() {
-        List<OutboxEvent> events = outboxRepository.lockPublishable(outboxPublishProperties.batchSize());
+    public void dispatchBatch() {
+        List<OutboxRecord> events = outboxRepository.lockPublishable(outboxProperties.batchSize());
 
-        for (OutboxEvent event : events) {
+        for (OutboxRecord event : events) {
             publish(event);
         }
     }
 
-    private void publish(OutboxEvent event) {
+    private void publish(OutboxRecord event) {
         try {
             kafkaTemplate.send(
                     event.topic(),
                     event.eventKey(),
                     event.payload()
             ).get(
-                    outboxPublishProperties.sendTimeout().toMillis(),
+                    outboxProperties.sendTimeout().toMillis(),
                     TimeUnit.MILLISECONDS
             );
 
             outboxRepository.markPublished(event.id());
-
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
             handleFailure(event, exception);
@@ -54,7 +57,7 @@ public class OutboxPublisher {
         }
     }
 
-    private void handleFailure(OutboxEvent event, Exception exception) {
+    private void handleFailure(OutboxRecord event, Exception exception) {
         OutboxRetryDecision decision = outboxRetryPolicy.decide(event.attempts());
 
         if (decision.isDead()) {
@@ -63,7 +66,6 @@ public class OutboxPublisher {
                     decision.failureCount(),
                     exception.getMessage()
             );
-
             return;
         }
 
