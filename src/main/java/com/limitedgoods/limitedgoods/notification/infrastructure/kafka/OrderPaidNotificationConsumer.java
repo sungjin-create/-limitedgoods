@@ -25,8 +25,8 @@ public class OrderPaidNotificationConsumer {
 
     @Transactional
     @KafkaListener(
-            topics = "orders.lifecycle.v1",
-            groupId = "limitedgoods-notification"
+            topics = "${app.kafka.topics.order-lifecycle.name}",
+            groupId = "${app.kafka.consumer.notification.group-id}"
     )
     public void consume(String message) throws JsonProcessingException {
 

@@ -34,6 +34,7 @@ spring:
 
     consumer:
       enable-auto-commit: false
+      auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
 
@@ -54,6 +55,15 @@ app:
       same-site: Lax
       path: /api/user
       max-age: 7d
+  kafka:
+    topics:
+      order-lifecycle:
+        name: orders.lifecycle.v1
+        partitions: 3
+        replicas: 1
+    consumer:
+      notification:
+        group-id: limitedgoods-notification
 
 jwt:
   access-expiration: 15m
