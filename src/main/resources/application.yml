@@ -20,6 +20,26 @@ spring:
     redis:
       timeout: 6000ms
 
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+      properties:
+        enable.idempotence: true
+        compression.type: zstd
+        delivery.timeout.ms: 30000
+
+    consumer:
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
+    listener:
+      ack-mode: record
+
 server:
   tomcat:
     threads:
@@ -57,3 +77,7 @@ queue:
 payment:
   finalize:
     delay-ms: 30000
+
+outbox:
+  relay:
+    delay-ms: 500
