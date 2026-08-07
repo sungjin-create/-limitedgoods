@@ -60,6 +60,7 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/user/order/**",
                                 "/api/user/queue/**",
+                                "/api/user/notifications/**",
                                 "/api/user/info"
                         ).authenticated()
 

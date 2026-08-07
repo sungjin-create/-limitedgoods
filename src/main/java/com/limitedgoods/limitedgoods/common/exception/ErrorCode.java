@@ -303,6 +303,12 @@ public enum ErrorCode {
             "REFUND_001",
             "환불 시도를 찾을 수 없습니다."
     ),
+
+    NOTIFICATION_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "NOTIFICATION_001",
+            "알림을 찾을 수 없습니다."
+    ),
     ;
 
 
