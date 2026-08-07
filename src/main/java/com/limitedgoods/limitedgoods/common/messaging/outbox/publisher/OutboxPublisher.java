@@ -18,26 +18,24 @@ public class OutboxPublisher {
     private final KafkaTemplate<String, String> kafkaTemplate;
 
     @Transactional
-    public int outboxPublishBatch() {
-        List<OutboxEvent> messages = outboxRepository.lockPublishable(100);
+    public void outboxPublishBatch() {
+        List<OutboxEvent> outboxEvents = outboxRepository.lockPublishable(100);
 
-        for (OutboxEvent message : messages) {
+        for (OutboxEvent event : outboxEvents) {
             try {
                 kafkaTemplate.send(
-                        message.topic(),
-                        message.eventKey(),
-                        message.payload()
+                        event.topic(),
+                        event.eventKey(),
+                        event.payload()
                 ).get(10, TimeUnit.SECONDS);
 
-                outboxRepository.markPublished(message.id());
+                outboxRepository.markPublished(event.id());
             } catch (Exception exception) {
                 outboxRepository.markFailed(
-                        message.id(),
+                        event.id(),
                         exception.getMessage()
                 );
             }
         }
-
-        return messages.size();
     }
 }
