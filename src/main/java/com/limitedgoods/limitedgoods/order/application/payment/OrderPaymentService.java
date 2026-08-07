@@ -12,7 +12,7 @@ import com.limitedgoods.limitedgoods.order.entity.OrderStatus;
 import com.limitedgoods.limitedgoods.order.purchase.service.UserPurchaseLimitService;
 import com.limitedgoods.limitedgoods.order.repository.OrderItemRepository;
 import com.limitedgoods.limitedgoods.order.event.OrderPaidPayload;
-import com.limitedgoods.limitedgoods.common.messaging.outbox.writer.OutboxEventWriter;
+import com.limitedgoods.limitedgoods.messaging.outbox.application.OutboxWriter;
 import com.limitedgoods.limitedgoods.product.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -30,7 +30,7 @@ public class OrderPaymentService {
     private final OrderStatusHistoryService historyService;
     private final OrderAccessService orderAccessService;
     private final UserPurchaseLimitService userPurchaseLimitService;
-    private final OutboxEventWriter outboxEventWriter;
+    private final OutboxWriter outboxWriter;
 
     @Transactional
     public OrderResponse finalizeApprovedPayment(Long userId, Long orderId) {
@@ -68,7 +68,7 @@ public class OrderPaymentService {
                 order.getUser()
         );
 
-        outboxEventWriter.append(
+        outboxWriter.append(
                 "orders.lifecycle.v1",
                 order.getId().toString(),
                 "Order",

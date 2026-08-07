@@ -1,4 +1,4 @@
-package com.limitedgoods.limitedgoods.common.messaging.outbox.dto;
+package com.limitedgoods.limitedgoods.messaging.outbox.admin.dto;
 
 import java.time.LocalDateTime;
 import java.util.UUID;

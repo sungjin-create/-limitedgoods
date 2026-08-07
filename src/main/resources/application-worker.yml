@@ -1,0 +1,5 @@
+# The internal worker processes outbox events without connecting to Kafka.
+spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration

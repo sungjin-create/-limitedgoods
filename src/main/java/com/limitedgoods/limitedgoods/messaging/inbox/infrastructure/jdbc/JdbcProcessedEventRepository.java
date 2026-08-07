@@ -1,4 +1,4 @@
-package com.limitedgoods.limitedgoods.common.messaging.inbox;
+package com.limitedgoods.limitedgoods.messaging.inbox.infrastructure.jdbc;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -8,7 +8,7 @@ import java.util.UUID;
 
 @Repository
 @RequiredArgsConstructor
-public class ProcessedEventRepository {
+public class JdbcProcessedEventRepository {
 
     private final JdbcTemplate jdbcTemplate;
 

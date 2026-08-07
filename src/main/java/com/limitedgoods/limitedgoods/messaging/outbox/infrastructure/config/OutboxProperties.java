@@ -1,11 +1,11 @@
-package com.limitedgoods.limitedgoods.common.messaging.outbox.config;
+package com.limitedgoods.limitedgoods.messaging.outbox.infrastructure.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.time.Duration;
 
 @ConfigurationProperties(prefix = "outbox.publish")
-public record OutboxPublishProperties(
+public record OutboxProperties(
         long delayMs,
         int batchSize,
         Duration sendTimeout,
@@ -13,7 +13,7 @@ public record OutboxPublishProperties(
         Duration initialBackoff,
         Duration maxBackoff
 ) {
-    public OutboxPublishProperties {
+    public OutboxProperties {
         if (batchSize <= 0) {
             throw new IllegalArgumentException("outbox.publish.batch-size는 1 이상이어야 합니다.");
         }

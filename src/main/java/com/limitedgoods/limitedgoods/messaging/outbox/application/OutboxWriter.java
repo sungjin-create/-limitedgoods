@@ -1,8 +1,8 @@
-package com.limitedgoods.limitedgoods.common.messaging.outbox.writer;
+package com.limitedgoods.limitedgoods.messaging.outbox.application;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.limitedgoods.limitedgoods.common.messaging.event.EventEnvelope;
+import com.limitedgoods.limitedgoods.messaging.contract.EventEnvelope;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -15,7 +15,7 @@ import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
-public class OutboxEventWriter {
+public class OutboxWriter {
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;

@@ -1,8 +1,6 @@
-package com.limitedgoods.limitedgoods.common.messaging.outbox.admin;
+package com.limitedgoods.limitedgoods.messaging.outbox.admin;
 
-import com.limitedgoods.limitedgoods.common.messaging.outbox.dto.OutboxDeadEventResponse;
-import com.limitedgoods.limitedgoods.common.messaging.outbox.dto.OutboxEvent;
-import com.limitedgoods.limitedgoods.common.messaging.outbox.repository.OutboxJdbcRepository;
+import com.limitedgoods.limitedgoods.messaging.outbox.admin.dto.OutboxDeadEventResponse;
 import com.limitedgoods.limitedgoods.common.response.ApiResponse;
 import com.limitedgoods.limitedgoods.security.user.CustomUserDetails;
 import lombok.RequiredArgsConstructor;

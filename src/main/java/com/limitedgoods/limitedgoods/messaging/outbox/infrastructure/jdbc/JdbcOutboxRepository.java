@@ -1,7 +1,7 @@
-package com.limitedgoods.limitedgoods.common.messaging.outbox.repository;
+package com.limitedgoods.limitedgoods.messaging.outbox.infrastructure.jdbc;
 
-import com.limitedgoods.limitedgoods.common.messaging.outbox.dto.OutboxDeadEventResponse;
-import com.limitedgoods.limitedgoods.common.messaging.outbox.dto.OutboxEvent;
+import com.limitedgoods.limitedgoods.messaging.outbox.admin.dto.OutboxDeadEventResponse;
+import com.limitedgoods.limitedgoods.messaging.outbox.model.OutboxRecord;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -14,11 +14,11 @@ import java.util.UUID;
 
 @Repository
 @RequiredArgsConstructor
-public class OutboxJdbcRepository {
+public class JdbcOutboxRepository {
 
     private final JdbcTemplate jdbcTemplate;
 
-    public List<OutboxEvent> lockPublishable(int batchSize) {
+    public List<OutboxRecord> lockPublishable(int batchSize) {
         return jdbcTemplate.query("""
             SELECT id, topic, event_key, payload::text, attempts
             FROM outbox_event
@@ -28,7 +28,7 @@ public class OutboxJdbcRepository {
             LIMIT ?
             FOR UPDATE SKIP LOCKED
             """,
-                (rs, rowNum) -> new OutboxEvent(
+                (rs, rowNum) -> new OutboxRecord(
                         rs.getObject("id", UUID.class),
                         rs.getString("topic"),
                         rs.getString("event_key"),

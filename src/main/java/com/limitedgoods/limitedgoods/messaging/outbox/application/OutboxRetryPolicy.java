@@ -1,7 +1,7 @@
-package com.limitedgoods.limitedgoods.common.messaging.outbox.policy;
+package com.limitedgoods.limitedgoods.messaging.outbox.application;
 
-import com.limitedgoods.limitedgoods.common.messaging.outbox.config.OutboxPublishProperties;
-import com.limitedgoods.limitedgoods.common.messaging.outbox.dto.OutboxRetryDecision;
+import com.limitedgoods.limitedgoods.messaging.outbox.infrastructure.config.OutboxProperties;
+import com.limitedgoods.limitedgoods.messaging.outbox.model.OutboxRetryDecision;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -12,12 +12,12 @@ import java.time.Instant;
 @RequiredArgsConstructor
 public class OutboxRetryPolicy {
 
-    private final OutboxPublishProperties outboxPublishProperties;
+    private final OutboxProperties outboxProperties;
 
     public OutboxRetryDecision decide(int currentAttempts) {
         int failureCount = currentAttempts + 1;
 
-        if (failureCount >= outboxPublishProperties.maxAttempts()) {
+        if (failureCount >= outboxProperties.maxAttempts()) {
             return OutboxRetryDecision.dead(failureCount);
         }
 
@@ -27,8 +27,8 @@ public class OutboxRetryPolicy {
     }
 
     private Duration calculateBackoff(int currentAttempts) {
-        long initialSeconds = outboxPublishProperties.initialBackoff().toSeconds();
-        long maximumSeconds = outboxPublishProperties.maxBackoff().toSeconds();
+        long initialSeconds = outboxProperties.initialBackoff().toSeconds();
+        long maximumSeconds = outboxProperties.maxBackoff().toSeconds();
         long delaySeconds = initialSeconds;
 
         for (int attempt = 0; attempt < currentAttempts && delaySeconds < maximumSeconds; attempt++) {

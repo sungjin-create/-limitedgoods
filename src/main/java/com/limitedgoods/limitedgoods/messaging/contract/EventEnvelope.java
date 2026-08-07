@@ -1,4 +1,4 @@
-package com.limitedgoods.limitedgoods.common.messaging.event;
+package com.limitedgoods.limitedgoods.messaging.contract;
 
 import java.time.Instant;
 import java.util.UUID;
