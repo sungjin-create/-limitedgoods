@@ -28,6 +28,11 @@ public enum ErrorCode {
             "USER_004",
             "정지된 사용자입니다."
     ),
+    INVALID_USER_ROLE(
+            HttpStatus.FORBIDDEN,
+            "USER_005",
+            "권한이 없습니다."
+    ),
 
     INVALID_INPUT(
             HttpStatus.BAD_REQUEST,
@@ -308,6 +313,12 @@ public enum ErrorCode {
             HttpStatus.NOT_FOUND,
             "NOTIFICATION_001",
             "알림을 찾을 수 없습니다."
+    ),
+
+    OUTBOX_EVENT_NOT_REQUEUEABLE(
+            HttpStatus.CONFLICT,
+            "OUTBOX_001",
+            "재처리할 수 있는 DEAD 상태의 Outbox 이벤트가 아닙니다."
     ),
     ;
 

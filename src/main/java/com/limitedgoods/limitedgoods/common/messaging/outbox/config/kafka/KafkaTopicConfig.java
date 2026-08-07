@@ -1,4 +1,4 @@
-package com.limitedgoods.limitedgoods.common.config.kafka.config;
+package com.limitedgoods.limitedgoods.common.messaging.outbox.config.kafka;
 
 import org.apache.kafka.clients.admin.NewTopic;
 import org.springframework.beans.factory.annotation.Value;

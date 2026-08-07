@@ -91,3 +91,8 @@ payment:
 outbox:
   publish:
     delay-ms: 500
+    batch-size: 20
+    send-timeout: 10s
+    max-attempts: 10
+    initial-backoff: 1s
+    max-backoff: 5m
